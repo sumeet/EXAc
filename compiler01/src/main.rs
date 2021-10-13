@@ -37,11 +37,13 @@ peg::parser! {
             = _? name:ident() _? block:block() _? { Exa { name: name.into(), block } }
 
         rule block() -> Block
-            // = "{" exprs:(expr()*) "}" { Block(exprs) }
-            = "{}" { Block { exprs: vec![] } }
+            = "{" exprs:(expr_with_newlines()*) "}" { Block { exprs } }
 
-        // rule expr() -> Expr
-        //     =
+        rule expr_with_newlines() -> Expr
+            = newline()* expr:expr() newline()* { expr }
+
+        rule expr() -> Expr
+            = ident() { Expr {} }
 
         rule ident() -> &'input str = $(ident_start()+ ['a'..='z' | 'A'..='Z' | '_' | '0'..='9']*)
         rule ident_start() -> &'input str = $(['a'..='z' | 'A'..='Z' | '_']+)
