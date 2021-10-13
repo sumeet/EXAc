@@ -25,12 +25,13 @@ pub struct Exa {
 
 #[derive(Debug)]
 pub struct Block {
-    els: Vec<BlockEl>,
+    exprs: Vec<Expr>,
 }
 
 #[derive(Debug)]
-pub enum BlockEl {
+pub enum Expr {
     OpenFileBlock(OpenFileBlock),
+    Assignment(Box<Assignment>),
 }
 
 #[derive(Debug)]
@@ -38,6 +39,18 @@ pub struct OpenFileBlock {
     file_id: NumOrVar,
     binding: String,
     block: Block,
+}
+
+#[derive(Debug)]
+pub struct Assignment {
+    binding: String,
+    expr: Expr,
+}
+
+#[derive(Debug)]
+pub struct FileOp {
+    binding: String,
+    op_name: String,
 }
 
 #[derive(Debug)]
@@ -57,19 +70,23 @@ peg::parser! {
         rule block() -> Block
             = empty_block() / block_with_exprs()
         rule empty_block() -> Block
-            = "{" _? "}" { Block { els: vec![] }}
+            = "{" _? "}" { Block { exprs: vec![] }}
         rule block_with_exprs() -> Block
-            = "{" els:(block_el_with_whitespace()*) "}" { Block { els } }
+            = "{" exprs:(expr_with_whitespace()*) "}" { Block { exprs } }
 
-        rule block_el_with_whitespace() -> BlockEl
-            = _* block_el:block_el() _* { block_el }
+        rule expr_with_whitespace() -> Expr
+            = _* expr:expr() _* { expr }
 
-        rule block_el() -> BlockEl
-            = open_file_block()
+        rule expr() -> Expr
+            = open_file_block() / assignment()
 
-        rule open_file_block() -> BlockEl
+        rule open_file_block() -> Expr
             = "open(" _? file_id:num_or_var() _? ")" _? "->" _? binding:ident() _? block:block() {
-                BlockEl::OpenFileBlock(OpenFileBlock { file_id, binding: binding.to_owned(), block })
+                Expr::OpenFileBlock(OpenFileBlock { file_id, binding: binding.to_owned(), block })
+            }
+        rule assignment() -> Expr
+            = binding:ident() _? "=" _? expr:expr() {
+                Expr::Assignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
             }
 
         rule num_or_var() -> NumOrVar
