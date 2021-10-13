@@ -1,17 +1,17 @@
 #[derive(Debug)]
 pub struct Program {
-    exas: Vec<Exa>,
+    pub exas: Vec<Exa>,
 }
 
 #[derive(Debug)]
 pub struct Exa {
-    name: String,
-    block: Block,
+    pub name: String,
+    pub block: Block,
 }
 
 #[derive(Debug)]
 pub struct Block {
-    exprs: Vec<Expr>,
+    pub exprs: Vec<Expr>,
 }
 
 #[derive(Debug)]
@@ -29,22 +29,22 @@ pub struct Link {
 
 #[derive(Debug)]
 pub struct OpenFileBlock {
-    file_id: NumOrVar,
+    pub file_id: NumOrVar,
     binding: String,
-    block: Block,
+    pub block: Block,
 }
 
 #[derive(Debug)]
 pub struct Assignment {
     binding: String,
-    expr: Expr,
+    pub expr: Expr,
 }
 
 #[derive(Debug)]
 pub struct FileOp {
-    binding: String,
-    op_name: String,
-    arg: Option<NumOrVar>,
+    pub binding: String,
+    pub op_name: String,
+    pub arg: Option<NumOrVar>,
 }
 
 #[derive(Debug)]
