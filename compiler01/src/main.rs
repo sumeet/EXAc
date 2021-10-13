@@ -1,7 +1,10 @@
 const EXAMPLE_PROGRAM: &str = r#"
 smt {
-    open(300) -> awfp {
+    open(300) -> file {
+        username = file.read()
     }
+    
+    link 800
 }
 "#;
 
@@ -32,6 +35,13 @@ pub struct Block {
 pub enum Expr {
     OpenFileBlock(OpenFileBlock),
     Assignment(Box<Assignment>),
+    FileOp(FileOp),
+    Link(Link),
+}
+
+#[derive(Debug)]
+pub struct Link {
+    dest: NumOrVar,
 }
 
 #[derive(Debug)]
@@ -51,6 +61,7 @@ pub struct Assignment {
 pub struct FileOp {
     binding: String,
     op_name: String,
+    arg: Option<NumOrVar>,
 }
 
 #[derive(Debug)]
@@ -78,7 +89,7 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = open_file_block() / assignment()
+            = open_file_block() / assignment() / file_op() / link()
 
         rule open_file_block() -> Expr
             = "open(" _? file_id:num_or_var() _? ")" _? "->" _? binding:ident() _? block:block() {
@@ -88,6 +99,17 @@ peg::parser! {
             = binding:ident() _? "=" _? expr:expr() {
                 Expr::Assignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
             }
+        // TODO: this is method call syntax... maybe could be more than fileops later
+        rule file_op() -> Expr
+            = binding:ident() _? "." _? op_name:ident() _? "(" _? arg:num_or_var()? _? ")" {
+                Expr::FileOp(FileOp {
+                    binding: binding.to_owned(),
+                    op_name: op_name.to_owned(),
+                    arg,
+                })
+            }
+        rule link() -> Expr
+            = "link" _? dest:num_or_var() { Expr::Link(Link { dest }) }
 
         rule num_or_var() -> NumOrVar
             = num_or_var_num() / num_or_var_var()
