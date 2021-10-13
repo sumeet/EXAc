@@ -1,0 +1,36 @@
+xa {
+  // grab the username
+  open(300) -> file {
+    username = file.read()
+  }
+
+  // go to the users host and 
+  link 800;
+  open(199) -> file {
+    while (username != file.read()) {
+      file.seek(2)
+    }
+    file.seek(1)
+    user_file_id = file.read()
+  }
+  link 799;
+  open(user_file_id) -> file {
+    // skip name and birthdate
+    file.seek(2)
+    sum = 0
+    while (!file.eof()) {
+      sum += file.read()
+    }
+
+    file.seek(-9999)
+    file.seek(2)
+    while (sum > 75) {
+      file.write(75)
+      sum -= 75
+    }
+    if (sum > 0) {
+      file.write(sum)
+    }
+  }
+  HALT
+}
