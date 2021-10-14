@@ -221,7 +221,11 @@ fn compile_if(r#if: &parser::If) -> anyhow::Result<Vec<String>> {
     let jmp_instruction = if needs_negation { "TJMP" } else { "FJMP" };
 
     let mut v = vec![test_statement];
-    v.push(format!("{} {}", jmp_instruction, end_label));
+    if r#if.else_block.is_none() {
+        v.push(format!("{} {}", jmp_instruction, end_label));
+    } else {
+        v.push(format!("{} {}", jmp_instruction, else_label));
+    }
     v.extend(compile_block(&r#if.block)?);
     if let Some(else_block) = &r#if.else_block {
         v.push(format!("JUMP {}", end_label));
@@ -268,7 +272,11 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             Expr::MinusAssignment(assignment) => minus_assign_expr(assignment),
             Expr::DivAssignment(assignment) => div_assign_expr(assignment),
             Expr::Halt => Ok(vec!["HALT".to_string()]),
-            Expr::Link(link) => Ok(vec![format!("LINK {}", to_arg(&link.dest))]),
+            Expr::Link(link) => Ok(link
+                .dests
+                .iter()
+                .map(|dest| format!("LINK {}", to_arg(dest)))
+                .collect()),
             Expr::While(r#while) => compile_while(r#while),
             Expr::If(r#if) => compile_if(r#if),
             Expr::FileOp(file_op) => compile_file_op(file_op),

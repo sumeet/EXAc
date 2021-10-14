@@ -63,7 +63,7 @@ pub enum AssignTarget {
 
 #[derive(Debug)]
 pub struct Link {
-    pub dest: NumOrVar,
+    pub dests: Vec<NumOrVar>,
 }
 
 #[derive(Debug)]
@@ -166,7 +166,7 @@ peg::parser! {
                 })
             }
         rule link() -> Expr
-            = "link" _? dest:num_or_var() { Expr::Link(Link { dest }) }
+            = "link" _? dests:(num_or_var() ** comma()) { Expr::Link(Link { dests }) }
         rule halt() -> Expr
             = "HALT" { Expr::Halt }
         rule while() -> Expr
