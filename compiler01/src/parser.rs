@@ -19,15 +19,23 @@ pub enum Expr {
     OpenFileBlock(OpenFileBlock),
     Assignment(Box<Assignment>),
     PlusAssignment(Box<Assignment>),
+    MinusAssignment(Box<Assignment>),
     FileOp(FileOp),
     Link(Link),
     While(Box<While>),
+    If(Box<If>),
     VarRef(String),
     LiteralNum(i32),
 }
 
 #[derive(Debug)]
 pub struct While {
+    pub cond: Condition,
+    pub block: Block,
+}
+
+#[derive(Debug)]
+pub struct If {
     pub cond: Condition,
     pub block: Block,
 }
@@ -90,7 +98,8 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = open_file_block() / assignment() / plus_assignment() / file_op() / link() / while() / var_ref() / literal_num()
+            = (open_file_block() / assignment() / plus_assignment() / minus_assignment() /
+               file_op() / link() / while() / if() / var_ref() / literal_num())
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
@@ -110,6 +119,10 @@ peg::parser! {
             = binding:ident() _? "+=" _? expr:expr() {
                 Expr::PlusAssignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
             }
+        rule minus_assignment() -> Expr
+            = binding:ident() _? "-=" _? expr:expr() {
+                Expr::MinusAssignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
+            }
         // TODO: this is method call syntax... maybe could be more than fileops later
         rule file_op() -> Expr
             = binding:ident() _? "." _? op_name:ident() _? "(" _? arg:num_or_var()? _? ")" {
@@ -124,6 +137,10 @@ peg::parser! {
         rule while() -> Expr
             = "while" _? "(" _? cond:condition() _? ")" _? block:block() {
                 Expr::While(Box::new(While { cond, block }))
+            }
+        rule if() -> Expr
+            = "if" _? "(" _? cond:condition() _? ")" _? block:block() {
+                Expr::If(Box::new(If { cond, block }))
             }
 
         rule condition() -> Condition

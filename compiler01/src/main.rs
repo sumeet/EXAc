@@ -32,6 +32,9 @@ smt {
         file.seek(2)
         while (sum > 75) {
             file.write(75)
+            sum -= 75
+        }
+        if (sum > 0) {
         }
     }
 }
@@ -62,9 +65,11 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::PlusAssignment(_)
+        | Expr::MinusAssignment(_)
         | Expr::Link(_)
         | Expr::FileOp(_)
         | Expr::While(_)
+        | Expr::If(_)
         | Expr::VarRef(_) => {
             bail!("assignment not supported for {:?}", assignment.expr)
         }
@@ -82,11 +87,35 @@ fn plus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<Strin
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::PlusAssignment(_)
+        | Expr::MinusAssignment(_)
         | Expr::Link(_)
         | Expr::FileOp(_)
         | Expr::While(_)
+        | Expr::If(_)
         | Expr::VarRef(_) => {
             bail!("plus assignment not supported for {:?}", assignment.expr)
+        }
+    }
+}
+
+fn minus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
+    match &assignment.expr {
+        Expr::FileOp(parser::FileOp {
+            op_name,
+            arg: None,
+            binding: _,
+        }) if op_name == "read" => Ok(vec!["SUBI X F X".to_owned()]),
+        Expr::LiteralNum(n) => Ok(vec![format!("SUBI X {} X", n)]),
+        Expr::OpenFileBlock(_)
+        | Expr::Assignment(_)
+        | Expr::PlusAssignment(_)
+        | Expr::MinusAssignment(_)
+        | Expr::Link(_)
+        | Expr::FileOp(_)
+        | Expr::While(_)
+        | Expr::If(_)
+        | Expr::VarRef(_) => {
+            bail!("minus assignment not supported for {:?}", assignment.expr)
         }
     }
 }
@@ -103,8 +132,10 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         Expr::OpenFileBlock(_)
         | Expr::PlusAssignment(_)
         | Expr::Assignment(_)
+        | Expr::MinusAssignment(_)
         | Expr::Link(_)
         | Expr::FileOp(_)
+        | Expr::If(_)
         | Expr::While(_) => {
             bail!("conditions not supported for {:?}", expr)
         }
@@ -156,6 +187,22 @@ fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
     Ok(v)
 }
 
+fn compile_if(r#if: &parser::If) -> anyhow::Result<Vec<String>> {
+    let if_id = rand_label_id();
+    let end_label = format!("IF_END_{}", if_id);
+
+    let TestExpr {
+        test_statement,
+        negate: needs_negation,
+    } = compile_condition(&r#if.cond)?;
+    let mut v = vec![test_statement];
+    let jmp_instruction = if needs_negation { "TJMP" } else { "FJMP" };
+    v.push(format!("{} {}", jmp_instruction, end_label));
+    v.extend(compile_block(&r#if.block)?);
+    v.push(format!("MARK {}", end_label));
+    Ok(v)
+}
+
 fn compile_file_op(file_op: &FileOp) -> anyhow::Result<Vec<String>> {
     match file_op.op_name.as_str() {
         "seek" => {
@@ -189,8 +236,10 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             }
             Expr::Assignment(assignment) => assign_expr(assignment),
             Expr::PlusAssignment(assignment) => plus_assign_expr(assignment),
+            Expr::MinusAssignment(assignment) => minus_assign_expr(assignment),
             Expr::Link(link) => Ok(vec![format!("LINK {}", to_arg(&link.dest))]),
             Expr::While(r#while) => compile_while(r#while),
+            Expr::If(r#if) => compile_if(r#if),
             Expr::FileOp(file_op) => compile_file_op(file_op),
             Expr::LiteralNum(_) | Expr::VarRef(_) => {
                 bail!("{:?} on bare level not supported", expr)
