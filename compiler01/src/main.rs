@@ -19,6 +19,14 @@ smt {
         file.seek(1)
         user_file_id = file.read()
     }
+    
+    link 799
+    open(user_file_id) -> file {
+        file.seek(2)
+        sum = 0
+        while (!feof) {
+        }
+    }
 }
 "#;
 
@@ -43,6 +51,7 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
             arg: None,
             binding: _,
         }) if op_name == "read" => Ok(vec!["COPY F X".to_owned()]),
+        Expr::LiteralNum(n) => Ok(vec![format!("COPY {} X", n)]),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
@@ -62,6 +71,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
             binding: _,
         }) if op_name == "read" => Ok("F".to_owned()),
         Expr::VarRef(_) => Ok("X".to_owned()),
+        Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
@@ -72,12 +82,26 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
     }
 }
 
-fn compile_condition(cond: &Condition) -> anyhow::Result<(String, String)> {
+struct TestExpr {
+    test_statement: String,
+    negate: bool,
+}
+
+fn compile_condition(cond: &Condition) -> anyhow::Result<TestExpr> {
     match cond {
-        Condition::NotEquals(lhs, rhs) => Ok((
-            format!("TEST {} = {}", cond_op(lhs)?, cond_op(rhs)?),
-            "TJMP".to_string(),
-        )),
+        Condition::NotEquals(lhs, rhs) => Ok(TestExpr {
+            test_statement: format!("TEST {} = {}", cond_op(lhs)?, cond_op(rhs)?),
+            negate: true,
+        }),
+        Condition::Not(inner_cond) => {
+            let mut inner_test_expr = compile_condition(inner_cond)?;
+            inner_test_expr.negate = !inner_test_expr.negate;
+            Ok(inner_test_expr)
+        }
+        Condition::EOF => Ok(TestExpr {
+            test_statement: "TEST EOF".to_string(),
+            negate: false,
+        }),
     }
 }
 
@@ -86,8 +110,12 @@ fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
     let start_label = format!("WHILE_START_{}", while_id);
     let end_label = format!("WHILE_END_{}", while_id);
 
-    let (test_statement, jmp_instruction) = compile_condition(&r#while.cond)?;
+    let TestExpr {
+        test_statement,
+        negate: needs_negation,
+    } = compile_condition(&r#while.cond)?;
     let mut v = vec![format!("MARK {}", start_label), test_statement];
+    let jmp_instruction = if needs_negation { "TJMP" } else { "FJMP" };
     v.push(format!("{} {}", jmp_instruction, end_label));
     v.extend(compile_block(&r#while.block)?);
     v.push(format!("JMP {}", start_label));
@@ -124,7 +152,9 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             Expr::Link(link) => Ok(vec![format!("LINK {}", to_arg(&link.dest))]),
             Expr::While(r#while) => compile_while(r#while),
             Expr::FileOp(file_op) => compile_file_op(file_op),
-            Expr::VarRef(_) => bail!("{:?} on bare level not supported", expr),
+            Expr::LiteralNum(_) | Expr::VarRef(_) => {
+                bail!("{:?} on bare level not supported", expr)
+            }
         })
         .collect::<anyhow::Result<Vec<_>>>()
         .map(|v| v.into_iter().flatten().collect())
@@ -136,7 +166,7 @@ fn compile_exa(exa: &parser::Exa) -> anyhow::Result<Vec<String>> {
 
 fn to_arg(num_or_var: &NumOrVar) -> String {
     match num_or_var {
-        NumOrVar::Var(_) => "x".to_owned(),
+        NumOrVar::Var(_) => "X".to_owned(),
         NumOrVar::Int(i) => i.to_string(),
     }
 }

@@ -22,6 +22,7 @@ pub enum Expr {
     Link(Link),
     While(Box<While>),
     VarRef(String),
+    LiteralNum(u32),
 }
 
 #[derive(Debug)]
@@ -33,6 +34,8 @@ pub struct While {
 #[derive(Debug)]
 pub enum Condition {
     NotEquals(Expr, Expr),
+    Not(Box<Condition>),
+    EOF,
 }
 
 #[derive(Debug)]
@@ -85,7 +88,10 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = open_file_block() / assignment() / file_op() / link() / while() / var_ref()
+            = open_file_block() / assignment() / file_op() / link() / while() / var_ref() / literal_num()
+
+        rule literal_num() -> Expr
+            = num:num() { Expr::LiteralNum(num) }
 
         rule var_ref() -> Expr
             = ident:ident() { Expr::VarRef(ident.to_owned()) }
@@ -115,9 +121,12 @@ peg::parser! {
             }
 
         rule condition() -> Condition
-            = not_equals()
+            = not_equals() / not_of_condition() / feof()
         rule not_equals() -> Condition
             = lhs:expr() _? "!=" _? rhs:expr() { Condition::NotEquals(lhs, rhs) }
+        rule not_of_condition() -> Condition
+            = "!" _? cond:condition() { Condition::Not(Box::new(cond)) }
+        rule feof() -> Condition = "feof" { Condition::EOF }
 
         rule num_or_var() -> NumOrVar
             = num_or_var_num() / num_or_var_var()
