@@ -167,6 +167,10 @@ struct TestExpr {
 
 fn compile_condition(cond: &Condition) -> anyhow::Result<TestExpr> {
     match cond {
+        Condition::Equals(lhs, rhs) => Ok(TestExpr {
+            test_statement: format!("TEST {} = {}", cond_op(lhs)?, cond_op(rhs)?),
+            negate: false,
+        }),
         Condition::NotEquals(lhs, rhs) => Ok(TestExpr {
             test_statement: format!("TEST {} = {}", cond_op(lhs)?, cond_op(rhs)?),
             negate: true,
@@ -208,15 +212,22 @@ fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
 fn compile_if(r#if: &parser::If) -> anyhow::Result<Vec<String>> {
     let if_id = rand_label_id();
     let end_label = format!("IF_EN_{}", if_id);
+    let else_label = format!("IF_EL_{}", if_id);
 
     let TestExpr {
         test_statement,
         negate: needs_negation,
     } = compile_condition(&r#if.cond)?;
-    let mut v = vec![test_statement];
     let jmp_instruction = if needs_negation { "TJMP" } else { "FJMP" };
+
+    let mut v = vec![test_statement];
     v.push(format!("{} {}", jmp_instruction, end_label));
     v.extend(compile_block(&r#if.block)?);
+    if let Some(else_block) = &r#if.else_block {
+        v.push(format!("JUMP {}", end_label));
+        v.push(format!("MARK {}", else_label));
+        v.extend(compile_block(else_block)?);
+    }
     v.push(format!("MARK {}", end_label));
     Ok(v)
 }
@@ -280,11 +291,25 @@ fn to_arg(num_or_var: &NumOrVar) -> String {
     }
 }
 
+fn remove_comments(txt: &str) -> String {
+    txt.lines()
+        .map(|line| {
+            if line.trim_start().starts_with("//") {
+                // replacing newlines with empty lines will preserve line numbers
+                ""
+            } else {
+                line
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn main() -> anyhow::Result<()> {
     let filename = std::env::args()
         .nth(1)
         .ok_or(anyhow!("usage: exc <filename>"))?;
-    let program_txt = std::fs::read_to_string(filename)?;
+    let program_txt = remove_comments(&std::fs::read_to_string(filename)?);
     let program = parser::parser::program(&program_txt)?;
     //dbg!(p);
     for exa in program.exas {

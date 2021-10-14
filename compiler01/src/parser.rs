@@ -42,10 +42,12 @@ pub struct While {
 pub struct If {
     pub cond: Condition,
     pub block: Block,
+    pub else_block: Option<Block>,
 }
 
 #[derive(Debug)]
 pub enum Condition {
+    Equals(Expr, Expr),
     NotEquals(Expr, Expr),
     GreaterThan(Expr, Expr),
     Not(Box<Condition>),
@@ -172,12 +174,22 @@ peg::parser! {
                 Expr::While(Box::new(While { cond, block }))
             }
         rule if() -> Expr
+            = if_else() / if_no_else()
+
+        rule if_else() -> Expr
+            = "if" _? "(" _? cond:condition() _? ")" _? block:block() _? "else" _? else_block:block() {
+                Expr::If(Box::new(If { cond, block, else_block: Some(else_block) }))
+            }
+
+        rule if_no_else() -> Expr
             = "if" _? "(" _? cond:condition() _? ")" _? block:block() {
-                Expr::If(Box::new(If { cond, block }))
+                Expr::If(Box::new(If { cond, block, else_block: None }))
             }
 
         rule condition() -> Condition
-            = not_equals() / greater_than() / not_of_condition() / feof()
+            = equals() / not_equals() / greater_than() / not_of_condition() / feof()
+        rule equals() -> Condition
+            = lhs:expr() _? "==" _? rhs:expr() { Condition::Equals(lhs, rhs) }
         rule not_equals() -> Condition
             = lhs:expr() _? "!=" _? rhs:expr() { Condition::NotEquals(lhs, rhs) }
         rule greater_than() -> Condition

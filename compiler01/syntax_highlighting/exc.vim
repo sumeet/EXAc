@@ -12,23 +12,21 @@ endif
 
 syntax keyword excTodos TODO XXX FIXME NOTE
 
-
-
 " Language keywords
-syntax keyword excKeywords feof fread fdrop fseek HALT
+syntax keyword excKeywords feof fread fdrop fseek HALT link const
 syntax keyword excLoopKeywords while if
 
 " Comments
 syntax region excCommentLine start="//" end="$"   contains=excTodos,excCommentIdent
 syntax region excDirective start="%" end=" "
 
-syntax match excCommentIdent		"#[a-z_][a-z0-9_]*\>"
+syntax match excCommentIdent		"[#$][a-z_][a-z0-9_]*\>"
 syntax match excIdent		"\<[a-z_][a-z0-9_]*\>"
 
 " Numbers
 syntax match excDecInt display "\<[0-9][0-9_]*"
-#syntax match excHexInt display "\<0[xX][0-9a-fA-F][0-9_a-fA-F]*"
-#syntax match excFloat  display "\<[0-9][0-9_]*\%(\.[0-9][0-9_]*\)"
+"syntax match excHexInt display "\<0[xX][0-9a-fA-F][0-9_a-fA-F]*"
+"syntax match excFloat  display "\<[0-9][0-9_]*\%(\.[0-9][0-9_]*\)"
 
 " Functions
 syntax match excFunction display "\<[a-z_][a-z0-9_]*\>("he=e-1
@@ -46,8 +44,8 @@ highlight default link excKeywords Keyword
 " highlight default link excCommentLine Comment
 highlight default link excLoopKeywords Repeat
 highlight default link excDecInt Number
-highlight default link excHexInt Number
-highlight default link excFloat Float
+"highlight default link excHexInt Number
+"highlight default link excFloat Float
 highlight default link excCommentLine Comment
 highlight default link excIdent Identifier
 highlight default link excCommentIdent Special
