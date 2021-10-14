@@ -21,11 +21,13 @@ xb {
       if (req == 1000) {
         if (feof) {
           $client = -1
+          HALT
         } else {
           $client = file.read()
           file.seek(-1)
         }
-      } else if (req == 2000) {
+      }
+      if (req == 2000) {
         file.seek(1)
         $client = file.read()
       }
