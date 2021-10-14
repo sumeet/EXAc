@@ -22,6 +22,7 @@ fn assignment_target(assignment: &parser::Assignment) -> String {
     match &assignment.binding {
         AssignTarget::SpecialRegister(name) => format!("#{}", name),
         AssignTarget::XVarName(_) => "X".to_owned(),
+        AssignTarget::GlobalLink(_) => "M".to_owned(),
     }
 }
 
@@ -36,9 +37,11 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
         Expr::LiteralNum(n) => Ok(vec![format!("COPY {} {}", n, target)]),
         Expr::VarRef(_) => Ok(vec![format!("COPY X {}", target)]),
         Expr::SpecialReg(name) => Ok(vec![format!("COPY #{} {}", name, target)]),
+        Expr::GlobalLink(_) => Ok(vec![format!("COPY M {}", target)]),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::PlusAssignment(_)
+        | Expr::DivAssignment(_)
         | Expr::MinusAssignment(_)
         | Expr::Link(_)
         | Expr::FileOp(_)
@@ -60,10 +63,12 @@ fn plus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<Strin
         }) if op_name == "read" => Ok(vec![format!("ADDI F X {}", target)]),
         Expr::LiteralNum(n) => Ok(vec![format!("ADDI {} {} {}", target, n, target)]),
         Expr::SpecialReg(name) => Ok(vec![format!("ADDI {} #{} {}", target, name, target)]),
+        Expr::GlobalLink(_) => Ok(vec![format!("ADDI {} M {}", target, target)]),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::PlusAssignment(_)
         | Expr::MinusAssignment(_)
+        | Expr::DivAssignment(_)
         | Expr::Link(_)
         | Expr::Halt
         | Expr::FileOp(_)
@@ -85,10 +90,39 @@ fn minus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<Stri
         }) if op_name == "read" => Ok(vec![format!("SUBI F X {}", target)]),
         Expr::LiteralNum(n) => Ok(vec![format!("SUBI {} {} {}", target, n, target)]),
         Expr::SpecialReg(name) => Ok(vec![format!("SUBI {} #{} {}", target, name, target)]),
+        Expr::GlobalLink(_) => Ok(vec![format!("SUBI {} M {}", target, target)]),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::PlusAssignment(_)
         | Expr::MinusAssignment(_)
+        | Expr::DivAssignment(_)
+        | Expr::Link(_)
+        | Expr::FileOp(_)
+        | Expr::While(_)
+        | Expr::Halt
+        | Expr::If(_)
+        | Expr::VarRef(_) => {
+            bail!("minus assignment not supported for {:?}", assignment.expr)
+        }
+    }
+}
+
+fn div_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
+    let target = assignment_target(assignment);
+    match &assignment.expr {
+        Expr::FileOp(parser::FileOp {
+            op_name,
+            arg: None,
+            binding: _,
+        }) if op_name == "read" => Ok(vec![format!("DIVI F X {}", target)]),
+        Expr::LiteralNum(n) => Ok(vec![format!("DIVI {} {} {}", target, n, target)]),
+        Expr::SpecialReg(name) => Ok(vec![format!("DIVI {} #{} {}", target, name, target)]),
+        Expr::GlobalLink(_) => Ok(vec![format!("DIVI {} M {}", target, target)]),
+        Expr::OpenFileBlock(_)
+        | Expr::Assignment(_)
+        | Expr::PlusAssignment(_)
+        | Expr::MinusAssignment(_)
+        | Expr::DivAssignment(_)
         | Expr::Link(_)
         | Expr::FileOp(_)
         | Expr::While(_)
@@ -109,11 +143,13 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         }) if op_name == "read" => Ok("F".to_owned()),
         Expr::VarRef(_) => Ok("X".to_owned()),
         Expr::SpecialReg(name) => Ok(format!("#{}", name)),
+        Expr::GlobalLink(_) => Ok("M".to_owned()),
         Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
         | Expr::PlusAssignment(_)
         | Expr::Assignment(_)
         | Expr::MinusAssignment(_)
+        | Expr::DivAssignment(_)
         | Expr::Link(_)
         | Expr::Halt
         | Expr::FileOp(_)
@@ -219,12 +255,13 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             Expr::Assignment(assignment) => assign_expr(assignment),
             Expr::PlusAssignment(assignment) => plus_assign_expr(assignment),
             Expr::MinusAssignment(assignment) => minus_assign_expr(assignment),
+            Expr::DivAssignment(assignment) => div_assign_expr(assignment),
             Expr::Halt => Ok(vec!["HALT".to_string()]),
             Expr::Link(link) => Ok(vec![format!("LINK {}", to_arg(&link.dest))]),
             Expr::While(r#while) => compile_while(r#while),
             Expr::If(r#if) => compile_if(r#if),
             Expr::FileOp(file_op) => compile_file_op(file_op),
-            Expr::LiteralNum(_) | Expr::VarRef(_) | Expr::SpecialReg(_) => {
+            Expr::LiteralNum(_) | Expr::VarRef(_) | Expr::SpecialReg(_) | Expr::GlobalLink(_) => {
                 bail!("{:?} on bare level not supported", expr)
             }
         })

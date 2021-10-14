@@ -20,6 +20,7 @@ pub enum Expr {
     Assignment(Box<Assignment>),
     PlusAssignment(Box<Assignment>),
     MinusAssignment(Box<Assignment>),
+    DivAssignment(Box<Assignment>),
     FileOp(FileOp),
     Halt,
     Link(Link),
@@ -27,6 +28,7 @@ pub enum Expr {
     If(Box<If>),
     VarRef(String),
     SpecialReg(String),
+    GlobalLink(String),
     LiteralNum(i32),
 }
 
@@ -52,6 +54,7 @@ pub enum Condition {
 
 #[derive(Debug)]
 pub enum AssignTarget {
+    GlobalLink(String),
     SpecialRegister(String),
     XVarName(String),
 }
@@ -107,8 +110,8 @@ peg::parser! {
 
         rule expr() -> Expr
             = (open_file_block() / assignment() / plus_assignment() / minus_assignment() /
-               file_op() / link() / halt() / while() / if() / var_ref() / special_reg_expr() /
-               literal_num())
+               div_assignment() / file_op() / link() / halt() / while() / if() / var_ref() /
+               special_reg_expr() / global_link_expr() / literal_num())
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
@@ -117,6 +120,8 @@ peg::parser! {
             = ident:ident() { Expr::VarRef(ident.to_owned()) }
         rule special_reg_expr() -> Expr
             = "#" ident:ident() { Expr::SpecialReg(ident.to_owned() )}
+        rule global_link_expr() -> Expr
+            = "$" ident:ident() { Expr::GlobalLink(ident.to_owned() )}
 
         rule open_file_block() -> Expr
             = "open(" _? file_id:num_or_var() _? ")" _? "->" _? binding:ident() _? block:block() {
@@ -134,14 +139,20 @@ peg::parser! {
             = binding:assign_target() _? "-=" _? expr:expr() {
                 Expr::MinusAssignment(Box::new(Assignment { binding, expr }))
             }
+        rule div_assignment() -> Expr
+            = binding:assign_target() _? "/=" _? expr:expr() {
+                Expr::DivAssignment(Box::new(Assignment { binding, expr }))
+            }
 
         rule assign_target() -> AssignTarget
-            = x_var_target() / special_reg_target()
+            = x_var_target() / special_reg_target() / global_link_target()
 
         rule x_var_target() -> AssignTarget
             = binding:ident() { AssignTarget::XVarName(binding.to_owned()) }
         rule special_reg_target() -> AssignTarget
             = "#" binding:ident() { AssignTarget::SpecialRegister(binding.to_owned()) }
+        rule global_link_target() -> AssignTarget
+            = "$" binding:ident() { AssignTarget::GlobalLink(binding.to_owned()) }
 
         // TODO: this is method call syntax... maybe could be more than fileops later
         rule file_op() -> Expr

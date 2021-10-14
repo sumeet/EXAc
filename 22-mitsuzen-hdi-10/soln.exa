@@ -1,0 +1,48 @@
+cr {
+  link 800
+  while (0 != 1) {
+    n = #nerv
+    n /= -10
+    $glob = n
+    $glob = n
+  }
+}
+
+sa {
+  link 800
+  link 1
+  link 1
+  while (0 != 1) {
+    n = $glob
+    if (n > 1) {
+      #nerv = 40
+      n -= 1
+    }
+    while (n > 0) {
+      #nerv = -70
+      n -= 1
+    }
+  }
+}
+
+av {
+  link 800
+  link 3
+  link 3
+  while (0 != 1) {
+    n = $glob
+    if (n > 1) {
+      #nerv = -70
+      n -= 1
+    }
+    if (n > 1) {
+      #nerv = 40
+      n -= 1
+    }
+    while (n > 0) {
+      #nerv = -70
+      n -= 1
+    }
+  }
+}
+
