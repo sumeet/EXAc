@@ -20,11 +20,24 @@ pub enum Expr {
     Assignment(Box<Assignment>),
     FileOp(FileOp),
     Link(Link),
+    While(Box<While>),
+    VarRef(String),
+}
+
+#[derive(Debug)]
+pub struct While {
+    pub cond: Condition,
+    pub block: Block,
+}
+
+#[derive(Debug)]
+pub enum Condition {
+    NotEquals(Expr, Expr),
 }
 
 #[derive(Debug)]
 pub struct Link {
-    dest: NumOrVar,
+    pub dest: NumOrVar,
 }
 
 #[derive(Debug)]
@@ -72,7 +85,10 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = open_file_block() / assignment() / file_op() / link()
+            = open_file_block() / assignment() / file_op() / link() / while() / var_ref()
+
+        rule var_ref() -> Expr
+            = ident:ident() { Expr::VarRef(ident.to_owned()) }
 
         rule open_file_block() -> Expr
             = "open(" _? file_id:num_or_var() _? ")" _? "->" _? binding:ident() _? block:block() {
@@ -93,6 +109,15 @@ peg::parser! {
             }
         rule link() -> Expr
             = "link" _? dest:num_or_var() { Expr::Link(Link { dest }) }
+        rule while() -> Expr
+            = "while" _? "(" _? cond:condition() _? ")" _? block:block() {
+                Expr::While(Box::new(While { cond, block }))
+            }
+
+        rule condition() -> Condition
+            = not_equals()
+        rule not_equals() -> Condition
+            = lhs:expr() _? "!=" _? rhs:expr() { Condition::NotEquals(lhs, rhs) }
 
         rule num_or_var() -> NumOrVar
             = num_or_var_num() / num_or_var_var()
