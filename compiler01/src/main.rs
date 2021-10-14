@@ -35,15 +35,17 @@ smt {
             sum -= 75
         }
         if (sum > 0) {
+            file.write(sum)
         }
     }
+    HALT
 }
 "#;
 
 // HAX
 fn rand_label_id() -> String {
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    const PASSWORD_LEN: usize = 10;
+    const PASSWORD_LEN: usize = 5;
     let mut rng = rand::thread_rng();
 
     (0..PASSWORD_LEN)
@@ -69,6 +71,7 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
         | Expr::Link(_)
         | Expr::FileOp(_)
         | Expr::While(_)
+        | Expr::Halt
         | Expr::If(_)
         | Expr::VarRef(_) => {
             bail!("assignment not supported for {:?}", assignment.expr)
@@ -89,6 +92,7 @@ fn plus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<Strin
         | Expr::PlusAssignment(_)
         | Expr::MinusAssignment(_)
         | Expr::Link(_)
+        | Expr::Halt
         | Expr::FileOp(_)
         | Expr::While(_)
         | Expr::If(_)
@@ -113,6 +117,7 @@ fn minus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<Stri
         | Expr::Link(_)
         | Expr::FileOp(_)
         | Expr::While(_)
+        | Expr::Halt
         | Expr::If(_)
         | Expr::VarRef(_) => {
             bail!("minus assignment not supported for {:?}", assignment.expr)
@@ -134,6 +139,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         | Expr::Assignment(_)
         | Expr::MinusAssignment(_)
         | Expr::Link(_)
+        | Expr::Halt
         | Expr::FileOp(_)
         | Expr::If(_)
         | Expr::While(_) => {
@@ -171,8 +177,8 @@ fn compile_condition(cond: &Condition) -> anyhow::Result<TestExpr> {
 
 fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
     let while_id = rand_label_id();
-    let start_label = format!("WHILE_START_{}", while_id);
-    let end_label = format!("WHILE_END_{}", while_id);
+    let start_label = format!("WH_ST_{}", while_id);
+    let end_label = format!("WH_EN_{}", while_id);
 
     let TestExpr {
         test_statement,
@@ -182,14 +188,14 @@ fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
     let jmp_instruction = if needs_negation { "TJMP" } else { "FJMP" };
     v.push(format!("{} {}", jmp_instruction, end_label));
     v.extend(compile_block(&r#while.block)?);
-    v.push(format!("JMP {}", start_label));
+    v.push(format!("JUMP {}", start_label));
     v.push(format!("MARK {}", end_label));
     Ok(v)
 }
 
 fn compile_if(r#if: &parser::If) -> anyhow::Result<Vec<String>> {
     let if_id = rand_label_id();
-    let end_label = format!("IF_END_{}", if_id);
+    let end_label = format!("IF_EN_{}", if_id);
 
     let TestExpr {
         test_statement,
@@ -237,6 +243,7 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             Expr::Assignment(assignment) => assign_expr(assignment),
             Expr::PlusAssignment(assignment) => plus_assign_expr(assignment),
             Expr::MinusAssignment(assignment) => minus_assign_expr(assignment),
+            Expr::Halt => Ok(vec!["HALT".to_string()]),
             Expr::Link(link) => Ok(vec![format!("LINK {}", to_arg(&link.dest))]),
             Expr::While(r#while) => compile_while(r#while),
             Expr::If(r#if) => compile_if(r#if),

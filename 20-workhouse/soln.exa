@@ -1,11 +1,10 @@
-xa {
-  // grab the username
+smt {
   open(300) -> file {
     username = file.read()
   }
 
-  // go to the users host
   link 800
+
   open(199) -> file {
     while (username != file.read()) {
       file.seek(2)
@@ -16,7 +15,6 @@ xa {
 
   link 799
   open(user_file_id) -> file {
-    // skip name and birthdate
     file.seek(2)
     sum = 0
     while (!feof) {

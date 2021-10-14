@@ -21,6 +21,7 @@ pub enum Expr {
     PlusAssignment(Box<Assignment>),
     MinusAssignment(Box<Assignment>),
     FileOp(FileOp),
+    Halt,
     Link(Link),
     While(Box<While>),
     If(Box<If>),
@@ -99,7 +100,7 @@ peg::parser! {
 
         rule expr() -> Expr
             = (open_file_block() / assignment() / plus_assignment() / minus_assignment() /
-               file_op() / link() / while() / if() / var_ref() / literal_num())
+               file_op() / link() / halt() / while() / if() / var_ref() / literal_num())
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
@@ -134,6 +135,8 @@ peg::parser! {
             }
         rule link() -> Expr
             = "link" _? dest:num_or_var() { Expr::Link(Link { dest }) }
+        rule halt() -> Expr
+            = "HALT" { Expr::Halt }
         rule while() -> Expr
             = "while" _? "(" _? cond:condition() _? ")" _? block:block() {
                 Expr::While(Box::new(While { cond, block }))
