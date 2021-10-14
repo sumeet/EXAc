@@ -1,0 +1,61 @@
+xa {
+  link 800
+  open(200) -> file {
+    link 800
+  }
+}
+
+// TODO: add const
+// REQUESTS:
+// 1000 => get text
+// 2000 => get correction and move onto next entry
+
+// RESPONSES:
+// -1 => eof
+
+xb {
+  open(300) -> file {
+    // TODO: add loop {}
+    while (1 != 0) {
+      req = $client
+      if (req == 1000) {
+        if (feof) {
+          $client = -1
+        } else {
+          $client = file.read()
+          file.seek(-1)
+        }
+      } else if (req == 2000) {
+        file.seek(1)
+        $client = file.read()
+      }
+    }
+  }
+}
+
+xc {
+  link 800, 799
+  open(212) -> file {
+    while (1 != 0) {
+      $server = 1000
+      resp = $server
+      if (resp == -1) {
+        HALT
+      }
+
+      while (!feof) {
+        if (file.read() == resp) {
+          file.seek(-1)
+
+          $server = 2000
+          resp = $server
+          file.write(resp)
+          // TODO: need break, this is a hack to trigger
+          // the end of the while
+          file.seek(9999)
+        }
+      }
+      file.seek(-9999)
+    }
+  }
+}
