@@ -1,5 +1,5 @@
-use crate::parser::{Condition, Expr, NumOrVar};
-use anyhow::bail;
+use crate::parser::{Condition, Expr, FileOp, NumOrVar};
+use anyhow::{anyhow, bail};
 use rand::Rng;
 
 mod parser;
@@ -14,13 +14,16 @@ smt {
     
     open(199) -> file {
         while (username != file.read()) {
+            file.seek(2)
         }
+        file.seek(1)
+        user_file_id = file.read()
     }
 }
 "#;
 
 // HAX
-fn rand_label() -> String {
+fn rand_label_id() -> String {
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     const PASSWORD_LEN: usize = 10;
     let mut rng = rand::thread_rng();
@@ -79,13 +82,31 @@ fn compile_condition(cond: &Condition) -> anyhow::Result<(String, String)> {
 }
 
 fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
-    let label = rand_label();
+    let while_id = rand_label_id();
+    let start_label = format!("WHILE_START_{}", while_id);
+    let end_label = format!("WHILE_END_{}", while_id);
+
     let (test_statement, jmp_instruction) = compile_condition(&r#while.cond)?;
-    let mut v = vec![format!("MARK WHILE_START_{}", label), test_statement];
-    v.push(format!("{} WHILE_END_{}", jmp_instruction, label));
+    let mut v = vec![format!("MARK {}", start_label), test_statement];
+    v.push(format!("{} {}", jmp_instruction, end_label));
     v.extend(compile_block(&r#while.block)?);
-    v.push(format!("MARK WHILE_END_{}", label));
+    v.push(format!("JMP {}", start_label));
+    v.push(format!("MARK {}", end_label));
     Ok(v)
+}
+
+fn compile_file_op(file_op: &FileOp) -> anyhow::Result<Vec<String>> {
+    if file_op.op_name != "seek" {
+        bail!(
+            "files can only be seeked on the bare level, not {:?}",
+            file_op
+        )
+    }
+    let arg = file_op
+        .arg
+        .as_ref()
+        .ok_or(anyhow!("seek must have an argument"))?;
+    Ok(vec![format!("SEEK {}", to_arg(&arg))])
 }
 
 fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
@@ -102,7 +123,8 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             Expr::Assignment(assignment) => assign_expr(assignment),
             Expr::Link(link) => Ok(vec![format!("LINK {}", to_arg(&link.dest))]),
             Expr::While(r#while) => compile_while(r#while),
-            Expr::FileOp(_) | Expr::VarRef(_) => bail!("{:?} on bare level not supported", expr),
+            Expr::FileOp(file_op) => compile_file_op(file_op),
+            Expr::VarRef(_) => bail!("{:?} on bare level not supported", expr),
         })
         .collect::<anyhow::Result<Vec<_>>>()
         .map(|v| v.into_iter().flatten().collect())
