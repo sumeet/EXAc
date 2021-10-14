@@ -23,7 +23,7 @@ pub enum Expr {
     Link(Link),
     While(Box<While>),
     VarRef(String),
-    LiteralNum(u32),
+    LiteralNum(i32),
 }
 
 #[derive(Debug)]
@@ -35,6 +35,7 @@ pub struct While {
 #[derive(Debug)]
 pub enum Condition {
     NotEquals(Expr, Expr),
+    GreaterThan(Expr, Expr),
     Not(Box<Condition>),
     EOF,
 }
@@ -67,7 +68,7 @@ pub struct FileOp {
 #[derive(Debug)]
 pub enum NumOrVar {
     Var(String),
-    Int(u32),
+    Int(i32),
 }
 
 peg::parser! {
@@ -126,9 +127,11 @@ peg::parser! {
             }
 
         rule condition() -> Condition
-            = not_equals() / not_of_condition() / feof()
+            = not_equals() / greater_than() / not_of_condition() / feof()
         rule not_equals() -> Condition
             = lhs:expr() _? "!=" _? rhs:expr() { Condition::NotEquals(lhs, rhs) }
+        rule greater_than() -> Condition
+            = lhs:expr() _? ">" _? rhs:expr() { Condition::GreaterThan(lhs, rhs) }
         rule not_of_condition() -> Condition
             = "!" _? cond:condition() { Condition::Not(Box::new(cond)) }
         rule feof() -> Condition = "feof" { Condition::EOF }
@@ -139,7 +142,7 @@ peg::parser! {
             = ident:ident() { NumOrVar::Var(ident.to_owned()) }
         rule num_or_var_num() -> NumOrVar
             = num:num() { NumOrVar::Int(num) }
-        rule num() -> u32
+        rule num() -> i32
             = num:$("0" / "-"? ['1' ..= '9']+ ['0' ..= '9']*) {? num.parse().or(Err("num")) }
 
         rule ident() -> &'input str = $(ident_start()+ ['a'..='z' | 'A'..='Z' | '_' | '0'..='9']*)

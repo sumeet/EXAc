@@ -27,6 +27,11 @@ smt {
         while (!feof) {
             sum += file.read()
         }
+        
+        file.seek(-9999)
+        file.seek(2)
+        while (sum > 75) {
+        }
     }
 }
 "#;
@@ -115,6 +120,10 @@ fn compile_condition(cond: &Condition) -> anyhow::Result<TestExpr> {
         Condition::NotEquals(lhs, rhs) => Ok(TestExpr {
             test_statement: format!("TEST {} = {}", cond_op(lhs)?, cond_op(rhs)?),
             negate: true,
+        }),
+        Condition::GreaterThan(lhs, rhs) => Ok(TestExpr {
+            test_statement: format!("TEST {} > {}", cond_op(lhs)?, cond_op(rhs)?),
+            negate: false,
         }),
         Condition::Not(inner_cond) => {
             let mut inner_test_expr = compile_condition(inner_cond)?;
