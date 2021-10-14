@@ -31,6 +31,7 @@ smt {
         file.seek(-9999)
         file.seek(2)
         while (sum > 75) {
+            file.write(75)
         }
     }
 }
@@ -156,17 +157,23 @@ fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
 }
 
 fn compile_file_op(file_op: &FileOp) -> anyhow::Result<Vec<String>> {
-    if file_op.op_name != "seek" {
-        bail!(
-            "files can only be seeked on the bare level, not {:?}",
-            file_op
-        )
+    match file_op.op_name.as_str() {
+        "seek" => {
+            let arg = file_op
+                .arg
+                .as_ref()
+                .ok_or(anyhow!("seek must have an argument"))?;
+            Ok(vec![format!("SEEK {}", to_arg(&arg))])
+        }
+        "write" => {
+            let arg = file_op
+                .arg
+                .as_ref()
+                .ok_or(anyhow!("write must have an argument"))?;
+            Ok(vec![format!("COPY {} F", to_arg(&arg))])
+        }
+        _ => bail!("file operation {:?} unsupported at bare level", file_op),
     }
-    let arg = file_op
-        .arg
-        .as_ref()
-        .ok_or(anyhow!("seek must have an argument"))?;
-    Ok(vec![format!("SEEK {}", to_arg(&arg))])
 }
 
 fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
