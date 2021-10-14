@@ -18,6 +18,7 @@ pub struct Block {
 pub enum Expr {
     OpenFileBlock(OpenFileBlock),
     Assignment(Box<Assignment>),
+    PlusAssignment(Box<Assignment>),
     FileOp(FileOp),
     Link(Link),
     While(Box<While>),
@@ -88,7 +89,7 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = open_file_block() / assignment() / file_op() / link() / while() / var_ref() / literal_num()
+            = open_file_block() / assignment() / plus_assignment() / file_op() / link() / while() / var_ref() / literal_num()
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
@@ -103,6 +104,10 @@ peg::parser! {
         rule assignment() -> Expr
             = binding:ident() _? "=" _? expr:expr() {
                 Expr::Assignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
+            }
+        rule plus_assignment() -> Expr
+            = binding:ident() _? "+=" _? expr:expr() {
+                Expr::PlusAssignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
             }
         // TODO: this is method call syntax... maybe could be more than fileops later
         rule file_op() -> Expr

@@ -25,6 +25,7 @@ smt {
         file.seek(2)
         sum = 0
         while (!feof) {
+            sum += file.read()
         }
     }
 }
@@ -54,11 +55,32 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
         Expr::LiteralNum(n) => Ok(vec![format!("COPY {} X", n)]),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
+        | Expr::PlusAssignment(_)
         | Expr::Link(_)
         | Expr::FileOp(_)
         | Expr::While(_)
         | Expr::VarRef(_) => {
             bail!("assignment not supported for {:?}", assignment.expr)
+        }
+    }
+}
+
+fn plus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
+    match &assignment.expr {
+        Expr::FileOp(parser::FileOp {
+            op_name,
+            arg: None,
+            binding: _,
+        }) if op_name == "read" => Ok(vec!["ADDI F X X".to_owned()]),
+        Expr::LiteralNum(n) => Ok(vec![format!("ADDI {} X X", n)]),
+        Expr::OpenFileBlock(_)
+        | Expr::Assignment(_)
+        | Expr::PlusAssignment(_)
+        | Expr::Link(_)
+        | Expr::FileOp(_)
+        | Expr::While(_)
+        | Expr::VarRef(_) => {
+            bail!("plus assignment not supported for {:?}", assignment.expr)
         }
     }
 }
@@ -73,6 +95,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         Expr::VarRef(_) => Ok("X".to_owned()),
         Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
+        | Expr::PlusAssignment(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
         | Expr::FileOp(_)
@@ -149,6 +172,7 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
                 Ok(v)
             }
             Expr::Assignment(assignment) => assign_expr(assignment),
+            Expr::PlusAssignment(assignment) => plus_assign_expr(assignment),
             Expr::Link(link) => Ok(vec![format!("LINK {}", to_arg(&link.dest))]),
             Expr::While(r#while) => compile_while(r#while),
             Expr::FileOp(file_op) => compile_file_op(file_op),

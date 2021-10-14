@@ -19,7 +19,7 @@ xa {
     // skip name and birthdate
     file.seek(2)
     sum = 0
-    while (!file.eof()) {
+    while (!feof) {
       sum += file.read()
     }
 
