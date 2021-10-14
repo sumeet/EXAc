@@ -26,6 +26,7 @@ pub enum Expr {
     While(Box<While>),
     If(Box<If>),
     VarRef(String),
+    SpecialReg(String),
     LiteralNum(i32),
 }
 
@@ -50,6 +51,12 @@ pub enum Condition {
 }
 
 #[derive(Debug)]
+pub enum AssignTarget {
+    SpecialRegister(String),
+    XVarName(String),
+}
+
+#[derive(Debug)]
 pub struct Link {
     pub dest: NumOrVar,
 }
@@ -63,7 +70,7 @@ pub struct OpenFileBlock {
 
 #[derive(Debug)]
 pub struct Assignment {
-    binding: String,
+    pub binding: AssignTarget,
     pub expr: Expr,
 }
 
@@ -100,30 +107,42 @@ peg::parser! {
 
         rule expr() -> Expr
             = (open_file_block() / assignment() / plus_assignment() / minus_assignment() /
-               file_op() / link() / halt() / while() / if() / var_ref() / literal_num())
+               file_op() / link() / halt() / while() / if() / var_ref() / special_reg_expr() /
+               literal_num())
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
 
         rule var_ref() -> Expr
             = ident:ident() { Expr::VarRef(ident.to_owned()) }
+        rule special_reg_expr() -> Expr
+            = "#" ident:ident() { Expr::SpecialReg(ident.to_owned() )}
 
         rule open_file_block() -> Expr
             = "open(" _? file_id:num_or_var() _? ")" _? "->" _? binding:ident() _? block:block() {
                 Expr::OpenFileBlock(OpenFileBlock { file_id, binding: binding.to_owned(), block })
             }
         rule assignment() -> Expr
-            = binding:ident() _? "=" _? expr:expr() {
-                Expr::Assignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
+            = binding:assign_target() _? "=" _? expr:expr() {
+                Expr::Assignment(Box::new(Assignment { binding, expr }))
             }
         rule plus_assignment() -> Expr
-            = binding:ident() _? "+=" _? expr:expr() {
-                Expr::PlusAssignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
+            = binding:assign_target() _? "+=" _? expr:expr() {
+                Expr::PlusAssignment(Box::new(Assignment { binding, expr }))
             }
         rule minus_assignment() -> Expr
-            = binding:ident() _? "-=" _? expr:expr() {
-                Expr::MinusAssignment(Box::new(Assignment { binding: binding.to_owned(), expr }))
+            = binding:assign_target() _? "-=" _? expr:expr() {
+                Expr::MinusAssignment(Box::new(Assignment { binding, expr }))
             }
+
+        rule assign_target() -> AssignTarget
+            = x_var_target() / special_reg_target()
+
+        rule x_var_target() -> AssignTarget
+            = binding:ident() { AssignTarget::XVarName(binding.to_owned()) }
+        rule special_reg_target() -> AssignTarget
+            = "#" binding:ident() { AssignTarget::SpecialRegister(binding.to_owned()) }
+
         // TODO: this is method call syntax... maybe could be more than fileops later
         rule file_op() -> Expr
             = binding:ident() _? "." _? op_name:ident() _? "(" _? arg:num_or_var()? _? ")" {

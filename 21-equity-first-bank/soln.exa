@@ -1,0 +1,69 @@
+xa {
+  link 800
+  link 800
+  link 800
+  link 800
+  while (#cash > 0) {
+    #disp = 20
+  }
+}
+
+xb {
+  link 800
+  link 800
+  link 800
+  link 801
+  while (#cash > 0) {
+    #disp = 20
+  }
+}
+
+xc {
+  link 800
+  link 800
+  link 800
+  link 804
+  while (#cash > 0) {
+    #disp = 20
+  }
+}
+
+xd {
+  link 800
+  link 800
+  link 800
+  link 805
+  while (#cash > 0) {
+    #disp = 20
+  }
+}
+
+xe {
+  link 800
+  link 800
+  link 800
+  link 806
+  while (#cash > 0) {
+    #disp = 20
+  }
+}
+
+xf {
+  link 800
+  link 800
+  link 800
+  link 802
+  while (#cash > 0) {
+    #disp = 20
+  }
+}
+
+xg {
+  link 800
+  link 800
+  link 800
+  link 803
+  while (#cash > 0) {
+    #disp = 20
+  }
+}

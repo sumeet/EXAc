@@ -1,46 +1,8 @@
-use crate::parser::{Condition, Expr, FileOp, NumOrVar};
+use crate::parser::{AssignTarget, Condition, Expr, FileOp, NumOrVar};
 use anyhow::{anyhow, bail};
 use rand::Rng;
 
 mod parser;
-
-const EXAMPLE_PROGRAM: &str = r#"
-smt {
-    open(300) -> file {
-        username = file.read()
-    }
-    
-    link 800
-    
-    open(199) -> file {
-        while (username != file.read()) {
-            file.seek(2)
-        }
-        file.seek(1)
-        user_file_id = file.read()
-    }
-    
-    link 799
-    open(user_file_id) -> file {
-        file.seek(2)
-        sum = 0
-        while (!feof) {
-            sum += file.read()
-        }
-        
-        file.seek(-9999)
-        file.seek(2)
-        while (sum > 75) {
-            file.write(75)
-            sum -= 75
-        }
-        if (sum > 0) {
-            file.write(sum)
-        }
-    }
-    HALT
-}
-"#;
 
 // HAX
 fn rand_label_id() -> String {
@@ -56,14 +18,24 @@ fn rand_label_id() -> String {
         .collect()
 }
 
+fn assignment_target(assignment: &parser::Assignment) -> String {
+    match &assignment.binding {
+        AssignTarget::SpecialRegister(name) => format!("#{}", name),
+        AssignTarget::XVarName(_) => "X".to_owned(),
+    }
+}
+
 fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
+    let target = assignment_target(assignment);
     match &assignment.expr {
         Expr::FileOp(parser::FileOp {
             op_name,
             arg: None,
             binding: _,
-        }) if op_name == "read" => Ok(vec!["COPY F X".to_owned()]),
-        Expr::LiteralNum(n) => Ok(vec![format!("COPY {} X", n)]),
+        }) if op_name == "read" => Ok(vec![format!("COPY F {}", target)]),
+        Expr::LiteralNum(n) => Ok(vec![format!("COPY {} {}", n, target)]),
+        Expr::VarRef(_) => Ok(vec![format!("COPY X {}", target)]),
+        Expr::SpecialReg(name) => Ok(vec![format!("COPY #{} {}", name, target)]),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::PlusAssignment(_)
@@ -72,21 +44,22 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
         | Expr::FileOp(_)
         | Expr::While(_)
         | Expr::Halt
-        | Expr::If(_)
-        | Expr::VarRef(_) => {
+        | Expr::If(_) => {
             bail!("assignment not supported for {:?}", assignment.expr)
         }
     }
 }
 
 fn plus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
+    let target = assignment_target(assignment);
     match &assignment.expr {
         Expr::FileOp(parser::FileOp {
             op_name,
             arg: None,
             binding: _,
-        }) if op_name == "read" => Ok(vec!["ADDI F X X".to_owned()]),
-        Expr::LiteralNum(n) => Ok(vec![format!("ADDI {} X X", n)]),
+        }) if op_name == "read" => Ok(vec![format!("ADDI F X {}", target)]),
+        Expr::LiteralNum(n) => Ok(vec![format!("ADDI {} {} {}", target, n, target)]),
+        Expr::SpecialReg(name) => Ok(vec![format!("ADDI {} #{} {}", target, name, target)]),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::PlusAssignment(_)
@@ -103,13 +76,15 @@ fn plus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<Strin
 }
 
 fn minus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
+    let target = assignment_target(assignment);
     match &assignment.expr {
         Expr::FileOp(parser::FileOp {
             op_name,
             arg: None,
             binding: _,
-        }) if op_name == "read" => Ok(vec!["SUBI X F X".to_owned()]),
-        Expr::LiteralNum(n) => Ok(vec![format!("SUBI X {} X", n)]),
+        }) if op_name == "read" => Ok(vec![format!("SUBI F X {}", target)]),
+        Expr::LiteralNum(n) => Ok(vec![format!("SUBI {} {} {}", target, n, target)]),
+        Expr::SpecialReg(name) => Ok(vec![format!("SUBI {} #{} {}", target, name, target)]),
         Expr::OpenFileBlock(_)
         | Expr::Assignment(_)
         | Expr::PlusAssignment(_)
@@ -133,6 +108,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
             binding: _,
         }) if op_name == "read" => Ok("F".to_owned()),
         Expr::VarRef(_) => Ok("X".to_owned()),
+        Expr::SpecialReg(name) => Ok(format!("#{}", name)),
         Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
         | Expr::PlusAssignment(_)
@@ -248,7 +224,7 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             Expr::While(r#while) => compile_while(r#while),
             Expr::If(r#if) => compile_if(r#if),
             Expr::FileOp(file_op) => compile_file_op(file_op),
-            Expr::LiteralNum(_) | Expr::VarRef(_) => {
+            Expr::LiteralNum(_) | Expr::VarRef(_) | Expr::SpecialReg(_) => {
                 bail!("{:?} on bare level not supported", expr)
             }
         })
@@ -268,12 +244,17 @@ fn to_arg(num_or_var: &NumOrVar) -> String {
 }
 
 fn main() -> anyhow::Result<()> {
-    //dbg!(EXAMPLE_PROGRAM);
-    let program = parser::parser::program(EXAMPLE_PROGRAM)?;
+    let filename = std::env::args()
+        .nth(1)
+        .ok_or(anyhow!("usage: exc <filename>"))?;
+    let program_txt = std::fs::read_to_string(filename)?;
+    let program = parser::parser::program(&program_txt)?;
     //dbg!(p);
     for exa in program.exas {
         println!("-- exa {} --", exa.name);
         println!("{}", compile_exa(&exa)?.join("\n"));
+        println!();
+        println!();
     }
     Ok(())
 }
