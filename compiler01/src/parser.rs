@@ -203,7 +203,7 @@ peg::parser! {
             = num:num() { Operand::LiteralNum(num) }
 
         rule assign_source() -> AssignSource
-            = operand_assign_source() / binop_assign_source()
+            = binop_assign_source() / operand_assign_source()
         rule operand_assign_source() -> AssignSource
             = operand:operand() { AssignSource::Operand(operand) }
         rule binop_assign_source() -> AssignSource
