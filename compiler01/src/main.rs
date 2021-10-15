@@ -186,6 +186,10 @@ fn compile_condition(cond: &Condition) -> anyhow::Result<TestExpr> {
             test_statement: format!("TEST {} = {}", cond_op(lhs)?, cond_op(rhs)?),
             negate: true,
         }),
+        Condition::LessThan(lhs, rhs) => Ok(TestExpr {
+            test_statement: format!("TEST {} < {}", cond_op(lhs)?, cond_op(rhs)?),
+            negate: false,
+        }),
         Condition::GreaterThan(lhs, rhs) => Ok(TestExpr {
             test_statement: format!("TEST {} > {}", cond_op(lhs)?, cond_op(rhs)?),
             negate: false,

@@ -51,6 +51,7 @@ pub struct If {
 pub enum Condition {
     Equals(Expr, Expr),
     NotEquals(Expr, Expr),
+    LessThan(Expr, Expr),
     GreaterThan(Expr, Expr),
     Not(Box<Condition>),
     EOF,
@@ -202,6 +203,8 @@ peg::parser! {
             = lhs:expr() _? "==" _? rhs:expr() { Condition::Equals(lhs, rhs) }
         rule not_equals() -> Condition
             = lhs:expr() _? "!=" _? rhs:expr() { Condition::NotEquals(lhs, rhs) }
+        rule less_than() -> Condition
+            = lhs:expr() _? ">" _? rhs:expr() { Condition::LessThan(lhs, rhs) }
         rule greater_than() -> Condition
             = lhs:expr() _? ">" _? rhs:expr() { Condition::GreaterThan(lhs, rhs) }
         rule not_of_condition() -> Condition
