@@ -23,7 +23,9 @@ pub enum Expr {
     DivAssignment(Box<Assignment>),
     FileOp(FileOp),
     Halt,
+    Kill,
     Link(Link),
+    Wait(u32),
     While(Box<While>),
     If(Box<If>),
     VarRef(String),
@@ -112,8 +114,8 @@ peg::parser! {
 
         rule expr() -> Expr
             = (open_file_block() / assignment() / plus_assignment() / minus_assignment() /
-               div_assignment() / file_op() / link() / halt() / while() / if() / var_ref() /
-               special_reg_expr() / global_link_expr() / literal_num())
+               div_assignment() / file_op() / link() / wait() / kill() / halt() / while() / if() /
+               var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
@@ -167,6 +169,14 @@ peg::parser! {
             }
         rule link() -> Expr
             = "link" _? dests:(num_or_var() ** comma()) { Expr::Link(Link { dests }) }
+        rule wait() -> Expr
+            = wait_n_times() / wait_no_args()
+        rule wait_no_args() -> Expr
+            = "wait" { Expr::Wait(1) }
+        rule wait_n_times() -> Expr
+            = "wait" _? times:num() { Expr::Wait(times as _) }
+        rule kill() -> Expr
+            = "kill" { Expr::Kill }
         rule halt() -> Expr
             = "HALT" { Expr::Halt }
         rule while() -> Expr

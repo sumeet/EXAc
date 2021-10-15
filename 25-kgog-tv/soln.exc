@@ -1,0 +1,30 @@
+xa {
+  link 800 
+  kill
+  kill
+}
+
+xc {
+  wait 3
+  link 800
+  open(210) -> file {
+    link 809
+  }
+}
+
+xd {
+  wait 3
+  link 800
+  open(211) -> file {
+    link 828
+  }
+}
+
+//xb {
+//  link 800
+//  link 809
+//  open(265) -> file {
+//    link -1
+//  }
+//}
+

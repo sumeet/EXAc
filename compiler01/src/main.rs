@@ -1,6 +1,7 @@
 use crate::parser::{AssignTarget, Condition, Expr, FileOp, NumOrVar};
 use anyhow::{anyhow, bail};
 use rand::Rng;
+use std::iter::repeat;
 
 mod parser;
 
@@ -44,9 +45,11 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
         | Expr::DivAssignment(_)
         | Expr::MinusAssignment(_)
         | Expr::Link(_)
+        | Expr::Wait(_)
         | Expr::FileOp(_)
         | Expr::While(_)
         | Expr::Halt
+        | Expr::Kill
         | Expr::If(_) => {
             bail!("assignment not supported for {:?}", assignment.expr)
         }
@@ -70,7 +73,9 @@ fn plus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<Strin
         | Expr::MinusAssignment(_)
         | Expr::DivAssignment(_)
         | Expr::Link(_)
+        | Expr::Kill
         | Expr::Halt
+        | Expr::Wait(_)
         | Expr::FileOp(_)
         | Expr::While(_)
         | Expr::If(_)
@@ -100,6 +105,8 @@ fn minus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<Stri
         | Expr::FileOp(_)
         | Expr::While(_)
         | Expr::Halt
+        | Expr::Wait(_)
+        | Expr::Kill
         | Expr::If(_)
         | Expr::VarRef(_) => {
             bail!("minus assignment not supported for {:?}", assignment.expr)
@@ -124,9 +131,11 @@ fn div_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String
         | Expr::MinusAssignment(_)
         | Expr::DivAssignment(_)
         | Expr::Link(_)
+        | Expr::Wait(_)
         | Expr::FileOp(_)
         | Expr::While(_)
         | Expr::Halt
+        | Expr::Kill
         | Expr::If(_)
         | Expr::VarRef(_) => {
             bail!("minus assignment not supported for {:?}", assignment.expr)
@@ -151,7 +160,9 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         | Expr::MinusAssignment(_)
         | Expr::DivAssignment(_)
         | Expr::Link(_)
+        | Expr::Wait(_)
         | Expr::Halt
+        | Expr::Kill
         | Expr::FileOp(_)
         | Expr::If(_)
         | Expr::While(_) => {
@@ -272,6 +283,8 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             Expr::MinusAssignment(assignment) => minus_assign_expr(assignment),
             Expr::DivAssignment(assignment) => div_assign_expr(assignment),
             Expr::Halt => Ok(vec!["HALT".to_string()]),
+            Expr::Kill => Ok(vec!["KILL".to_string()]),
+            Expr::Wait(n) => Ok(repeat("NOOP".to_string()).take(*n as _).collect()),
             Expr::Link(link) => Ok(link
                 .dests
                 .iter()
