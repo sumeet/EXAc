@@ -1,3 +1,5 @@
+use anyhow::bail;
+
 #[derive(Debug)]
 pub struct Program {
     pub exas: Vec<Exa>,
@@ -17,10 +19,7 @@ pub struct Block {
 #[derive(Debug)]
 pub enum Expr {
     OpenFileBlock(OpenFileBlock),
-    Assignment(Box<Assignment>),
-    PlusAssignment(Box<Assignment>),
-    MinusAssignment(Box<Assignment>),
-    DivAssignment(Box<Assignment>),
+    Assignment(Assignment),
     FileOp(FileOp),
     Halt,
     Kill,
@@ -58,13 +57,6 @@ pub enum Condition {
 }
 
 #[derive(Debug)]
-pub enum AssignTarget {
-    GlobalLink(String),
-    SpecialRegister(String),
-    XVarName(String),
-}
-
-#[derive(Debug)]
 pub struct Link {
     pub dests: Vec<NumOrVar>,
 }
@@ -78,8 +70,47 @@ pub struct OpenFileBlock {
 
 #[derive(Debug)]
 pub struct Assignment {
-    pub binding: AssignTarget,
-    pub expr: Expr,
+    pub dest: Operand,
+    pub src: AssignSource,
+}
+
+impl Assignment {
+    pub fn new(dest: Operand, src: AssignSource) -> anyhow::Result<Self> {
+        match dest {
+            Operand::LiteralNum(_) => {
+                bail!("can't assign into a literal number: {:?}", dest)
+            }
+            Operand::FileRead
+            | Operand::GlobalLink(_)
+            | Operand::SpecialRegister(_)
+            | Operand::XVarName(_) => (),
+        }
+        Ok(Self { dest, src })
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum BinOp {
+    Add,
+    Sub,
+    Div,
+    Mul,
+    Swizzle,
+}
+
+#[derive(Debug)]
+pub enum AssignSource {
+    Operand(Operand),
+    BinOp(Operand, BinOp, Operand),
+}
+
+#[derive(Debug)]
+pub enum Operand {
+    FileRead,
+    GlobalLink(String),
+    SpecialRegister(String),
+    XVarName(String),
+    LiteralNum(i32),
 }
 
 #[derive(Debug)]
@@ -114,9 +145,8 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = (open_file_block() / assignment() / plus_assignment() / minus_assignment() /
-               div_assignment() / file_op() / link() / wait() / kill() / halt() / while() / if() /
-               var_ref() / special_reg_expr() / global_link_expr() / literal_num())
+            = (open_file_block() / assignment() / file_op() / link() / wait() / kill() / halt() /
+               while() / if() / var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
@@ -132,32 +162,50 @@ peg::parser! {
             = "open(" _? file_id:num_or_var() _? ")" _? "->" _? binding:ident() _? block:block() {
                 Expr::OpenFileBlock(OpenFileBlock { file_id, binding: binding.to_owned(), block })
             }
-        rule assignment() -> Expr
-            = binding:assign_target() _? "=" _? expr:expr() {
-                Expr::Assignment(Box::new(Assignment { binding, expr }))
+
+        rule binop() -> BinOp
+            = add_op() / sub_op() / div_op() / mul_op() / swizzle_op()
+        rule add_op() -> BinOp
+            = "+" { BinOp::Add }
+        rule sub_op() -> BinOp
+            = "-" { BinOp::Sub }
+        rule div_op() -> BinOp
+            = "/" { BinOp::Div }
+        rule mul_op() -> BinOp
+            = "*" { BinOp::Mul }
+        rule swizzle_op() -> BinOp
+            = "~" { BinOp::Swizzle }
+
+        rule assignment() -> Expr = regular_assignment() / op_assignment()
+
+        rule regular_assignment() -> Expr
+            = dest:operand() _? "=" _? src:assign_source() {
+                Expr::Assignment(Assignment::new(dest, src))
             }
-        rule plus_assignment() -> Expr
-            = binding:assign_target() _? "+=" _? expr:expr() {
-                Expr::PlusAssignment(Box::new(Assignment { binding, expr }))
-            }
-        rule minus_assignment() -> Expr
-            = binding:assign_target() _? "-=" _? expr:expr() {
-                Expr::MinusAssignment(Box::new(Assignment { binding, expr }))
-            }
-        rule div_assignment() -> Expr
-            = binding:assign_target() _? "/=" _? expr:expr() {
-                Expr::DivAssignment(Box::new(Assignment { binding, expr }))
+        rule op_assignment() -> Expr
+            = dest:operand() _? binop() "=" _? src:operand() {
+                let src = AssignSource::Operand(src);
+                Expr::Assignment(Assignment::new(dest, src))
             }
 
-        rule assign_target() -> AssignTarget
-            = x_var_target() / special_reg_target() / global_link_target()
+        rule operand() -> Operand
+            = x_var_operand() / special_reg_operand() / global_link_operand()
 
-        rule x_var_target() -> AssignTarget
-            = binding:ident() { AssignTarget::XVarName(binding.to_owned()) }
-        rule special_reg_target() -> AssignTarget
-            = "#" binding:ident() { AssignTarget::SpecialRegister(binding.to_owned()) }
-        rule global_link_target() -> AssignTarget
-            = "$" binding:ident() { AssignTarget::GlobalLink(binding.to_owned()) }
+        rule x_var_operand() -> Operand
+            = name:ident() { Operand::XVarName(name.to_owned()) }
+        rule special_reg_operand() -> Operand
+            = "#" name:ident() { Operand::SpecialRegister(name.to_owned()) }
+        rule global_link_operand() -> Operand
+            = "$" name:ident() { Operand::GlobalLink(name.to_owned()) }
+
+        rule assign_source() -> AssignSource
+            = operand_assign_source() / binop_assign_source()
+        rule operand_assign_source() -> AssignSource
+            = operand:operand() { AssignSource::Operand(operand) }
+        rule binop_assign_source() -> AssignSource
+            = lhs:operand() _? binop:binop() _? rhs:operand() {
+                AssignSource::BinOp(lhs, binop, rhs)
+            }
 
         // TODO: this is method call syntax... maybe could be more than fileops later
         rule file_op() -> Expr

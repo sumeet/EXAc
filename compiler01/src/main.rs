@@ -1,4 +1,4 @@
-use crate::parser::{AssignTarget, Condition, Expr, FileOp, NumOrVar};
+use crate::parser::{AssignSource, BinOp, Condition, Expr, FileOp, NumOrVar, Operand};
 use anyhow::{anyhow, bail};
 use rand::Rng;
 use std::iter::repeat;
@@ -19,128 +19,35 @@ fn rand_label_id() -> String {
         .collect()
 }
 
-fn assignment_target(assignment: &parser::Assignment) -> String {
-    match &assignment.binding {
-        AssignTarget::SpecialRegister(name) => format!("#{}", name),
-        AssignTarget::XVarName(_) => "X".to_owned(),
-        AssignTarget::GlobalLink(_) => "M".to_owned(),
+fn to_reg_name(operand: &parser::Operand) -> String {
+    match operand {
+        Operand::FileRead => "F".to_owned(),
+        Operand::GlobalLink(_) => "M".to_owned(),
+        Operand::SpecialRegister(name) => format!("#{}", name),
+        Operand::XVarName(_) => format!("X"),
+        Operand::LiteralNum(n) => n.to_string(),
+    }
+}
+
+fn to_binop_instruction(binop: parser::BinOp) -> &'static str {
+    match binop {
+        BinOp::Add => "ADDI",
+        BinOp::Sub => "SUBI",
+        BinOp::Div => "DIVI",
+        BinOp::Mul => "MULI",
+        BinOp::Swizzle => "SWIZ",
     }
 }
 
 fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
-    let target = assignment_target(assignment);
-    match &assignment.expr {
-        Expr::FileOp(parser::FileOp {
-            op_name,
-            arg: None,
-            binding: _,
-        }) if op_name == "read" => Ok(vec![format!("COPY F {}", target)]),
-        Expr::LiteralNum(n) => Ok(vec![format!("COPY {} {}", n, target)]),
-        Expr::VarRef(_) => Ok(vec![format!("COPY X {}", target)]),
-        Expr::SpecialReg(name) => Ok(vec![format!("COPY #{} {}", name, target)]),
-        Expr::GlobalLink(_) => Ok(vec![format!("COPY M {}", target)]),
-        Expr::OpenFileBlock(_)
-        | Expr::Assignment(_)
-        | Expr::PlusAssignment(_)
-        | Expr::DivAssignment(_)
-        | Expr::MinusAssignment(_)
-        | Expr::Link(_)
-        | Expr::Wait(_)
-        | Expr::FileOp(_)
-        | Expr::While(_)
-        | Expr::Halt
-        | Expr::Kill
-        | Expr::If(_) => {
-            bail!("assignment not supported for {:?}", assignment.expr)
+    let dest = to_reg_name(&assignment.dest);
+    Ok(vec![match &assignment.src {
+        AssignSource::Operand(src_operand) => {
+            let src = to_reg_name(src_operand);
+            format!("COPY {} {}", src, dest)
         }
-    }
-}
-
-fn plus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
-    let target = assignment_target(assignment);
-    match &assignment.expr {
-        Expr::FileOp(parser::FileOp {
-            op_name,
-            arg: None,
-            binding: _,
-        }) if op_name == "read" => Ok(vec![format!("ADDI F X {}", target)]),
-        Expr::LiteralNum(n) => Ok(vec![format!("ADDI {} {} {}", target, n, target)]),
-        Expr::SpecialReg(name) => Ok(vec![format!("ADDI {} #{} {}", target, name, target)]),
-        Expr::GlobalLink(_) => Ok(vec![format!("ADDI {} M {}", target, target)]),
-        Expr::OpenFileBlock(_)
-        | Expr::Assignment(_)
-        | Expr::PlusAssignment(_)
-        | Expr::MinusAssignment(_)
-        | Expr::DivAssignment(_)
-        | Expr::Link(_)
-        | Expr::Kill
-        | Expr::Halt
-        | Expr::Wait(_)
-        | Expr::FileOp(_)
-        | Expr::While(_)
-        | Expr::If(_)
-        | Expr::VarRef(_) => {
-            bail!("plus assignment not supported for {:?}", assignment.expr)
-        }
-    }
-}
-
-fn minus_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
-    let target = assignment_target(assignment);
-    match &assignment.expr {
-        Expr::FileOp(parser::FileOp {
-            op_name,
-            arg: None,
-            binding: _,
-        }) if op_name == "read" => Ok(vec![format!("SUBI F X {}", target)]),
-        Expr::LiteralNum(n) => Ok(vec![format!("SUBI {} {} {}", target, n, target)]),
-        Expr::SpecialReg(name) => Ok(vec![format!("SUBI {} #{} {}", target, name, target)]),
-        Expr::GlobalLink(_) => Ok(vec![format!("SUBI {} M {}", target, target)]),
-        Expr::OpenFileBlock(_)
-        | Expr::Assignment(_)
-        | Expr::PlusAssignment(_)
-        | Expr::MinusAssignment(_)
-        | Expr::DivAssignment(_)
-        | Expr::Link(_)
-        | Expr::FileOp(_)
-        | Expr::While(_)
-        | Expr::Halt
-        | Expr::Wait(_)
-        | Expr::Kill
-        | Expr::If(_)
-        | Expr::VarRef(_) => {
-            bail!("minus assignment not supported for {:?}", assignment.expr)
-        }
-    }
-}
-
-fn div_assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
-    let target = assignment_target(assignment);
-    match &assignment.expr {
-        Expr::FileOp(parser::FileOp {
-            op_name,
-            arg: None,
-            binding: _,
-        }) if op_name == "read" => Ok(vec![format!("DIVI F X {}", target)]),
-        Expr::LiteralNum(n) => Ok(vec![format!("DIVI {} {} {}", target, n, target)]),
-        Expr::SpecialReg(name) => Ok(vec![format!("DIVI {} #{} {}", target, name, target)]),
-        Expr::GlobalLink(_) => Ok(vec![format!("DIVI {} M {}", target, target)]),
-        Expr::OpenFileBlock(_)
-        | Expr::Assignment(_)
-        | Expr::PlusAssignment(_)
-        | Expr::MinusAssignment(_)
-        | Expr::DivAssignment(_)
-        | Expr::Link(_)
-        | Expr::Wait(_)
-        | Expr::FileOp(_)
-        | Expr::While(_)
-        | Expr::Halt
-        | Expr::Kill
-        | Expr::If(_)
-        | Expr::VarRef(_) => {
-            bail!("minus assignment not supported for {:?}", assignment.expr)
-        }
-    }
+        AssignSource::BinOp(lhs, binop, rhs) => {}
+    }])
 }
 
 fn cond_op(expr: &Expr) -> anyhow::Result<String> {
