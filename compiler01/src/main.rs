@@ -46,7 +46,12 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
             let src = to_reg_name(src_operand);
             format!("COPY {} {}", src, dest)
         }
-        AssignSource::BinOp(lhs, binop, rhs) => {}
+        AssignSource::BinOp(lhs, binop, rhs) => {
+            let instruction = to_binop_instruction(*binop);
+            let lhs = to_reg_name(lhs);
+            let rhs = to_reg_name(rhs);
+            format!("{} {} {} {}", instruction, lhs, rhs, dest)
+        }
     }])
 }
 
@@ -62,10 +67,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         Expr::GlobalLink(_) => Ok("M".to_owned()),
         Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
-        | Expr::PlusAssignment(_)
         | Expr::Assignment(_)
-        | Expr::MinusAssignment(_)
-        | Expr::DivAssignment(_)
         | Expr::Link(_)
         | Expr::Wait(_)
         | Expr::Halt
@@ -190,9 +192,6 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
                 Ok(v)
             }
             Expr::Assignment(assignment) => assign_expr(assignment),
-            Expr::PlusAssignment(assignment) => plus_assign_expr(assignment),
-            Expr::MinusAssignment(assignment) => minus_assign_expr(assignment),
-            Expr::DivAssignment(assignment) => div_assign_expr(assignment),
             Expr::Halt => Ok(vec!["HALT".to_string()]),
             Expr::Kill => Ok(vec!["KILL".to_string()]),
             Expr::Wait(n) => Ok(repeat("NOOP".to_string()).take(*n as _).collect()),

@@ -179,17 +179,19 @@ peg::parser! {
         rule assignment() -> Expr = regular_assignment() / op_assignment()
 
         rule regular_assignment() -> Expr
-            = dest:operand() _? "=" _? src:assign_source() {
-                Expr::Assignment(Assignment::new(dest, src))
+            = dest:operand() _? "=" _? src:assign_source() {?
+                let assignment = Assignment::new(dest, src).map_err(|e| "regular_assignment")?;
+                Ok(Expr::Assignment(assignment))
             }
         rule op_assignment() -> Expr
-            = dest:operand() _? binop() "=" _? src:operand() {
+            = dest:operand() _? binop() "=" _? src:operand() {?
                 let src = AssignSource::Operand(src);
-                Expr::Assignment(Assignment::new(dest, src))
+                let assignment = Assignment::new(dest, src).map_err(|e| "regular_assignment")?;
+                Ok(Expr::Assignment(assignment))
             }
 
         rule operand() -> Operand
-            = x_var_operand() / special_reg_operand() / global_link_operand()
+            = x_var_operand() / special_reg_operand() / global_link_operand() / literal_num_operand()
 
         rule x_var_operand() -> Operand
             = name:ident() { Operand::XVarName(name.to_owned()) }
@@ -197,6 +199,8 @@ peg::parser! {
             = "#" name:ident() { Operand::SpecialRegister(name.to_owned()) }
         rule global_link_operand() -> Operand
             = "$" name:ident() { Operand::GlobalLink(name.to_owned()) }
+        rule literal_num_operand() -> Operand
+            = num:num() { Operand::LiteralNum(num) }
 
         rule assign_source() -> AssignSource
             = operand_assign_source() / binop_assign_source()
@@ -246,13 +250,13 @@ peg::parser! {
             }
 
         rule condition() -> Condition
-            = equals() / not_equals() / greater_than() / not_of_condition() / feof()
+            = equals() / not_equals() / less_than() / greater_than() / not_of_condition() / feof()
         rule equals() -> Condition
             = lhs:expr() _? "==" _? rhs:expr() { Condition::Equals(lhs, rhs) }
         rule not_equals() -> Condition
             = lhs:expr() _? "!=" _? rhs:expr() { Condition::NotEquals(lhs, rhs) }
         rule less_than() -> Condition
-            = lhs:expr() _? ">" _? rhs:expr() { Condition::LessThan(lhs, rhs) }
+            = lhs:expr() _? "<" _? rhs:expr() { Condition::LessThan(lhs, rhs) }
         rule greater_than() -> Condition
             = lhs:expr() _? ">" _? rhs:expr() { Condition::GreaterThan(lhs, rhs) }
         rule not_of_condition() -> Condition
@@ -266,7 +270,7 @@ peg::parser! {
         rule num_or_var_num() -> NumOrVar
             = num:num() { NumOrVar::Int(num) }
         rule num() -> i32
-            = num:$("0" / "-"? ['1' ..= '9']+ ['0' ..= '9']*) {? num.parse().or(Err("num")) }
+            = num:$("0" / "-"? ['1' ..= '9']+ ['0' ..= '9']*) {? num.parse().or(Err("not a number")) }
 
         rule ident() -> &'input str = $(ident_start()+ ['a'..='z' | 'A'..='Z' | '_' | '0'..='9']*)
         rule ident_start() -> &'input str = $(['a'..='z' | 'A'..='Z' | '_']+)
