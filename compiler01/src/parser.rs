@@ -27,7 +27,9 @@ pub enum Expr {
     Wait(u32),
     While(Box<While>),
     If(Box<If>),
-    VarRef(String),
+    Spawn(Box<Block>),
+    XVarRef(String),
+    TVarRef(String),
     SpecialReg(String),
     GlobalLink(String),
     LiteralNum(i32),
@@ -83,7 +85,8 @@ impl Assignment {
             Operand::FileRead
             | Operand::GlobalLink(_)
             | Operand::SpecialRegister(_)
-            | Operand::XVarName(_) => (),
+            | Operand::XVarName(_)
+            | Operand::TVarName(_) => (),
         }
         Ok(Self { dest, src })
     }
@@ -110,6 +113,7 @@ pub enum Operand {
     GlobalLink(String),
     SpecialRegister(String),
     XVarName(String),
+    TVarName(String),
     LiteralNum(i32),
 }
 
@@ -146,13 +150,16 @@ peg::parser! {
 
         rule expr() -> Expr
             = (open_file_block() / assignment() / file_op() / link() / wait() / kill() / halt() /
-               while() / if() / var_ref() / special_reg_expr() / global_link_expr() / literal_num())
+               while() / if() / spawn() / x_var_ref() / t_var_ref() / special_reg_expr() /
+               global_link_expr() / literal_num())
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
 
-        rule var_ref() -> Expr
-            = ident:ident() { Expr::VarRef(ident.to_owned()) }
+        rule x_var_ref() -> Expr
+            = ident:ident() _? "/" _? "x" { Expr::XVarRef(ident.to_owned()) }
+        rule t_var_ref() -> Expr
+            = ident:ident() _? "/" _? "t" { Expr::TVarRef(ident.to_owned()) }
         rule special_reg_expr() -> Expr
             = "#" ident:ident() { Expr::SpecialReg(ident.to_owned() )}
         rule global_link_expr() -> Expr
@@ -191,16 +198,21 @@ peg::parser! {
             }
 
         rule operand() -> Operand
-            = x_var_operand() / special_reg_operand() / global_link_operand() / literal_num_operand()
+            = x_var_operand() / t_var_operand() / special_reg_operand() / global_link_operand() /
+              literal_num_operand() / file_read_operand()
 
         rule x_var_operand() -> Operand
-            = name:ident() { Operand::XVarName(name.to_owned()) }
+            = name:ident() _? "/" _? "x" { Operand::XVarName(name.to_owned()) }
+        rule t_var_operand() -> Operand
+            = name:ident() _? "/" _? "t" { Operand::TVarName(name.to_owned()) }
         rule special_reg_operand() -> Operand
             = "#" name:ident() { Operand::SpecialRegister(name.to_owned()) }
         rule global_link_operand() -> Operand
             = "$" name:ident() { Operand::GlobalLink(name.to_owned()) }
         rule literal_num_operand() -> Operand
             = num:num() { Operand::LiteralNum(num) }
+        rule file_read_operand() -> Operand
+            = "fread" _? "(" _? ")" { Operand::FileRead }
 
         rule assign_source() -> AssignSource
             = binop_assign_source() / operand_assign_source()
@@ -232,6 +244,8 @@ peg::parser! {
             = "kill" { Expr::Kill }
         rule halt() -> Expr
             = "HALT" { Expr::Halt }
+        rule spawn() -> Expr
+            = "spawn" _? block:block() { Expr::Spawn(Box::new(block)) }
         rule while() -> Expr
             = "while" _? "(" _? cond:condition() _? ")" _? block:block() {
                 Expr::While(Box::new(While { cond, block }))

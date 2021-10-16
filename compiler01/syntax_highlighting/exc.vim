@@ -13,7 +13,7 @@ endif
 syntax keyword excTodos TODO XXX FIXME NOTE
 
 " Language keywords
-syntax keyword excKeywords feof fread fdrop fseek kill HALT link const
+syntax keyword excKeywords feof fread fdrop fseek fcreate kill HALT link const spawn
 syntax keyword excLoopKeywords while if
 
 " Comments

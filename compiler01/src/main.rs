@@ -24,6 +24,7 @@ fn to_reg_name(operand: &parser::Operand) -> String {
         Operand::FileRead => "F".to_owned(),
         Operand::GlobalLink(_) => "M".to_owned(),
         Operand::SpecialRegister(name) => format!("#{}", name),
+        Operand::TVarName(_) => "T".to_owned(),
         Operand::XVarName(_) => format!("X"),
         Operand::LiteralNum(n) => n.to_string(),
     }
@@ -62,7 +63,8 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
             arg: None,
             binding: _,
         }) if op_name == "read" => Ok("F".to_owned()),
-        Expr::VarRef(_) => Ok("X".to_owned()),
+        Expr::XVarRef(_) => Ok("X".to_owned()),
+        Expr::TVarRef(_) => Ok("T".to_owned()),
         Expr::SpecialReg(name) => Ok(format!("#{}", name)),
         Expr::GlobalLink(_) => Ok("M".to_owned()),
         Expr::LiteralNum(n) => Ok(n.to_string()),
@@ -71,6 +73,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         | Expr::Link(_)
         | Expr::Wait(_)
         | Expr::Halt
+        | Expr::Spawn(_)
         | Expr::Kill
         | Expr::FileOp(_)
         | Expr::If(_)
@@ -133,6 +136,20 @@ fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
     Ok(v)
 }
 
+fn compile_spawn(block: &parser::Block) -> anyhow::Result<Vec<String>> {
+    let spawn_id = rand_label_id();
+    let start_of_spawn_label = format!("SP_ST_{}", spawn_id);
+    let end_of_spawn_label = format!("SP_EN_{}", spawn_id);
+
+    let mut v = vec![];
+    v.push(format!("REPL {}", start_of_spawn_label));
+    v.push(format!("JUMP {}", end_of_spawn_label));
+    v.push(format!("MARK {}", start_of_spawn_label));
+    v.extend(compile_block(&block)?);
+    v.push(format!("MARK {}", end_of_spawn_label));
+    Ok(v)
+}
+
 fn compile_if(r#if: &parser::If) -> anyhow::Result<Vec<String>> {
     let if_id = rand_label_id();
     let end_label = format!("IF_EN_{}", if_id);
@@ -176,6 +193,7 @@ fn compile_file_op(file_op: &FileOp) -> anyhow::Result<Vec<String>> {
                 .ok_or(anyhow!("write must have an argument"))?;
             Ok(vec![format!("COPY {} F", to_arg(&arg))])
         }
+        "wipe" => Ok(vec!["WIPE".to_owned()]),
         _ => bail!("file operation {:?} unsupported at bare level", file_op),
     }
 }
@@ -201,9 +219,14 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
                 .map(|dest| format!("LINK {}", to_arg(dest)))
                 .collect()),
             Expr::While(r#while) => compile_while(r#while),
+            Expr::Spawn(block) => compile_spawn(block),
             Expr::If(r#if) => compile_if(r#if),
             Expr::FileOp(file_op) => compile_file_op(file_op),
-            Expr::LiteralNum(_) | Expr::VarRef(_) | Expr::SpecialReg(_) | Expr::GlobalLink(_) => {
+            Expr::LiteralNum(_)
+            | Expr::XVarRef(_)
+            | Expr::TVarRef(_)
+            | Expr::SpecialReg(_)
+            | Expr::GlobalLink(_) => {
                 bail!("{:?} on bare level not supported", expr)
             }
         })
