@@ -70,6 +70,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
         | Expr::ChannelToggle
+        | Expr::ChannelWait
         | Expr::CreateFileBlock(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
@@ -228,6 +229,7 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             }
             Expr::Assignment(assignment) => assign_expr(assignment),
             Expr::ChannelToggle => Ok(vec!["MODE".to_string()]),
+            Expr::ChannelWait => Ok(vec!["VOID M".to_string()]),
             Expr::Halt => Ok(vec!["HALT".to_string()]),
             Expr::Kill => Ok(vec!["KILL".to_string()]),
             Expr::Wait(n) => Ok(repeat("NOOP".to_string()).take(*n as _).collect()),

@@ -1,0 +1,55 @@
+// TODO: need constants/macro support
+// 11: number of digits in phone number
+
+
+xb {
+  // drop off the song in the modem
+  fopen(300) { link 800 }
+  // go back and grab the phone numbers
+  link -1
+  fopen(301) {
+    // go back to the modem with the phone numbers
+    link 800
+    while(!feof) {
+      i/x = 0
+      while (i/x < 11) {
+        #dial = fread()
+        i/x += 1
+      }
+
+      spawn {
+        fopen(300) {
+          songname/x = fread()
+          artist/t = fread()
+        }
+        chtoggle()
+        link 800
+        spawn {
+          loop {
+            $local = songname/x
+            $local = artist/t
+          }
+        }
+        fopen(200) {
+          while (!feof) {
+            fwrite($local)
+            fwrite($local)
+          }
+          kill
+          chtoggle()
+          $global = -1
+        }
+        HALT
+      }
+
+      chwait()
+      #dial = -1
+    }
+
+    // TODO: need non-block version of fopen
+    file.wipe()
+    fopen(300) {
+      file.wipe()
+    }
+  }
+}
