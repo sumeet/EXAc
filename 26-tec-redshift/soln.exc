@@ -1,9 +1,21 @@
 xa {
+  spawn {
+    link 800, 800
+    open(220) -> file {
+      file.wipe()
+      HALT
+    }
+  }
+
+  link 800
   code = 0
   while (code < 1000) {
     #pass = code ~ 3
     #pass = code ~ 2
     #pass = code ~ 1
+    spawn {
+      link 800
+    }
     code += 1
  }
 }

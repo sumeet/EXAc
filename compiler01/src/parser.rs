@@ -104,7 +104,7 @@ pub enum AssignSource {
     BinOp(Operand, BinOp, Operand),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operand {
     FileRead,
     GlobalLink(String),
@@ -184,8 +184,8 @@ peg::parser! {
                 Ok(Expr::Assignment(assignment))
             }
         rule op_assignment() -> Expr
-            = dest:operand() _? binop() "=" _? src:operand() {?
-                let src = AssignSource::Operand(src);
+            = dest:operand() _? binop:binop() "=" _? src:operand() {?
+                let src = AssignSource::BinOp(src, binop, dest.clone());
                 let assignment = Assignment::new(dest, src).map_err(|e| "regular_assignment")?;
                 Ok(Expr::Assignment(assignment))
             }
