@@ -1,0 +1,52 @@
+#define GO_NORTH 800
+#define GO_EAST 801
+#define GO_SOUTH 802
+#define GO_WEST 803
+
+#define NUM_STARS 5
+
+xa {
+  fopen(300) {
+    link 800
+    file.seek(1)
+    east/x = fread()
+    while (east/x > 0) {
+      link GO_EAST
+      east/x -= 1
+    }
+    while (east/x < 0) {
+      link GO_WEST
+      east/x += 1
+    }
+
+    north/x = fread()
+    while (north/x > 0) {
+      link GO_NORTH
+      north/x -= 1
+    }
+    while (north/x < 0) {
+      link GO_SOUTH
+      north/x += 1
+    }
+
+    file.seek(-9999)
+    name/x = fread()
+  }
+
+  fopen(200) {
+    //  TODO: why doesn't fread() work here?
+    while (name/x != file.read()) {
+      // TODO: need fseek()
+      file.seek(NUM_STARS)
+    }
+    star_char/x = fread()
+    fwrite(star_char/x)
+    fwrite(star_char/x)
+    fwrite(star_char/x)
+    fwrite(star_char/x)
+  }
+
+  fopen(300) {
+    file.wipe()
+  }
+}
