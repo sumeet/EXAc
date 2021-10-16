@@ -21,7 +21,7 @@ fn rand_label_id() -> String {
 
 fn to_reg_name(operand: &parser::Operand) -> String {
     match operand {
-        Operand::FileRead => "F".to_owned(),
+        Operand::File => "F".to_owned(),
         Operand::GlobalLink(_) => "M".to_owned(),
         Operand::SpecialRegister(name) => format!("#{}", name),
         Operand::TVarName(_) => "T".to_owned(),
@@ -69,6 +69,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         Expr::GlobalLink(_) => Ok("M".to_owned()),
         Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
+        | Expr::CreateFileBlock(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
         | Expr::Wait(_)
@@ -186,13 +187,6 @@ fn compile_file_op(file_op: &FileOp) -> anyhow::Result<Vec<String>> {
                 .ok_or(anyhow!("seek must have an argument"))?;
             Ok(vec![format!("SEEK {}", to_arg(&arg))])
         }
-        "write" => {
-            let arg = file_op
-                .arg
-                .as_ref()
-                .ok_or(anyhow!("write must have an argument"))?;
-            Ok(vec![format!("COPY {} F", to_arg(&arg))])
-        }
         "wipe" => Ok(vec!["WIPE".to_owned()]),
         _ => bail!("file operation {:?} unsupported at bare level", file_op),
     }
@@ -206,6 +200,12 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
             Expr::OpenFileBlock(open_file_block) => {
                 let mut v = vec![format!("GRAB {}", to_arg(&open_file_block.file_id))];
                 v.extend(compile_block(&open_file_block.block)?);
+                v.push("DROP".to_owned());
+                Ok(v)
+            }
+            Expr::CreateFileBlock(block) => {
+                let mut v = vec!["MAKE".to_owned()];
+                v.extend(compile_block(block)?);
                 v.push("DROP".to_owned());
                 Ok(v)
             }

@@ -19,6 +19,7 @@ pub struct Block {
 #[derive(Debug)]
 pub enum Expr {
     OpenFileBlock(OpenFileBlock),
+    CreateFileBlock(Box<Block>),
     Assignment(Assignment),
     FileOp(FileOp),
     Halt,
@@ -82,7 +83,7 @@ impl Assignment {
             Operand::LiteralNum(_) => {
                 bail!("can't assign into a literal number: {:?}", dest)
             }
-            Operand::FileRead
+            Operand::File
             | Operand::GlobalLink(_)
             | Operand::SpecialRegister(_)
             | Operand::XVarName(_)
@@ -109,7 +110,7 @@ pub enum AssignSource {
 
 #[derive(Debug, Clone)]
 pub enum Operand {
-    FileRead,
+    File,
     GlobalLink(String),
     SpecialRegister(String),
     XVarName(String),
@@ -149,9 +150,9 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = (open_file_block() / assignment() / file_op() / link() / wait() / kill() / halt() /
-               while() / if() / spawn() / x_var_ref() / t_var_ref() / special_reg_expr() /
-               global_link_expr() / literal_num())
+            = (open_file_block() / create_file_block() / file_write() / assignment() / file_op() /
+               link() / wait() / kill() / halt() / while() / if() / spawn() / x_var_ref() /
+               t_var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
         rule literal_num() -> Expr
             = num:num() { Expr::LiteralNum(num) }
@@ -168,6 +169,15 @@ peg::parser! {
         rule open_file_block() -> Expr
             = "open(" _? file_id:num_or_var() _? ")" _? "->" _? binding:ident() _? block:block() {
                 Expr::OpenFileBlock(OpenFileBlock { file_id, binding: binding.to_owned(), block })
+            }
+        rule create_file_block() -> Expr
+            = "fcreate" _? "(" _? ")" _? block:block() { Expr::CreateFileBlock(Box::new(block)) }
+
+        rule file_write() -> Expr
+            = "fwrite" _? "(" _? src:assign_source() _? ")" {?
+                let dest = Operand::File;
+                let assignment = Assignment::new(dest, src).map_err(|e| "file_write")?;
+                Ok(Expr::Assignment(assignment))
             }
 
         rule binop() -> BinOp
@@ -212,7 +222,7 @@ peg::parser! {
         rule literal_num_operand() -> Operand
             = num:num() { Operand::LiteralNum(num) }
         rule file_read_operand() -> Operand
-            = "fread" _? "(" _? ")" { Operand::FileRead }
+            = "fread" _? "(" _? ")" { Operand::File }
 
         rule assign_source() -> AssignSource
             = binop_assign_source() / operand_assign_source()

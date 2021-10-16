@@ -24,11 +24,25 @@ xb {
       link -1, -1
       fcreate() {
         code/x = $ch
-        file.write(code/x ~ 3)
-        file.write(code/x ~ 2)
-        file.write(code/x ~ 1)
-        file.write(rdk_id/t)
+        fwrite(code/x ~ 3)
+        fwrite(code/x ~ 2)
+        fwrite(code/x ~ 1)
+        fwrite(rdk_id/t)
       }
+
+      i/x = 0
+      while (i/x < 5) {
+        kill
+      }
+      link 800
+      while (i/x < 5) {
+        kill
+      }
+      link 800
+      while (i/x < 5) {
+        kill
+      }
+      HALT
     }
   }
 }
