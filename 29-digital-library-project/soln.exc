@@ -12,7 +12,7 @@ xa {
 
 xb {
   link 800
-  while (1 != 0) {
+  loop {
     call_num/x = $ch
 
     spawn {
@@ -26,12 +26,26 @@ xb {
         chtoggle()
         spawn {
           fcreate() {
-            loop { fwrite($ch) }
+            loop {
+              recvd/x = $ch
+              if (recvd/x != -1) {
+                fwrite(recvd/x)
+              } else {
+                file.seek(-9999)
+                call_num/x = fread()
+                while (call_num/x > 0) {
+                  link -1
+                  call_num/x -= 100
+                }
+                HALT
+              }
+            }
           }
         }
         while (!feof) {
           $ch = fread()
         }
+        $ch = -1
       }
 
       HALT

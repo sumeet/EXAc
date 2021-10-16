@@ -28,6 +28,7 @@ pub enum Expr {
     Link(Link),
     Wait(u32),
     While(Box<While>),
+    Loop(Box<Block>),
     If(Box<If>),
     Spawn(Box<Block>),
     XVarRef(String),
@@ -152,7 +153,7 @@ peg::parser! {
 
         rule expr() -> Expr
             = (open_file_block() / create_file_block() / channel_toggle() / file_write() / assignment() / file_op() /
-               link() / wait() / kill() / halt() / while() / if() / spawn() / x_var_ref() /
+               link() / wait() / kill() / halt() / loop() / while() / if() / spawn() / x_var_ref() /
                t_var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
         rule literal_num() -> Expr
@@ -260,6 +261,8 @@ peg::parser! {
             = "HALT" { Expr::Halt }
         rule spawn() -> Expr
             = "spawn" _? block:block() { Expr::Spawn(Box::new(block)) }
+        rule loop() -> Expr
+            = "loop" _? block:block() { Expr::Loop(Box::new(block)) }
         rule while() -> Expr
             = "while" _? "(" _? cond:condition() _? ")" _? block:block() {
                 Expr::While(Box::new(While { cond, block }))

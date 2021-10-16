@@ -79,7 +79,8 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         | Expr::Kill
         | Expr::FileOp(_)
         | Expr::If(_)
-        | Expr::While(_) => {
+        | Expr::While(_)
+        | Expr::Loop(_) => {
             bail!("conditions not supported for {:?}", expr)
         }
     }
@@ -139,6 +140,17 @@ fn compile_while(r#while: &parser::While) -> anyhow::Result<Vec<String>> {
     v.extend(compile_block(&r#while.block)?);
     v.push(format!("JUMP {}", start_label));
     v.push(format!("MARK {}", end_label));
+    Ok(v)
+}
+
+fn compile_loop(block: &parser::Block) -> anyhow::Result<Vec<String>> {
+    let loop_id = rand_label_id();
+    let start_of_loop_label = format!("LO_ST_{}", loop_id);
+
+    let mut v = vec![];
+    v.push(format!("MARK {}", start_of_loop_label));
+    v.extend(compile_block(&block)?);
+    v.push(format!("JUMP {}", start_of_loop_label));
     Ok(v)
 }
 
@@ -226,6 +238,7 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
                 .collect()),
             Expr::While(r#while) => compile_while(r#while),
             Expr::Spawn(block) => compile_spawn(block),
+            Expr::Loop(block) => compile_loop(block),
             Expr::If(r#if) => compile_if(r#if),
             Expr::FileOp(file_op) => compile_file_op(file_op),
             Expr::LiteralNum(_)
