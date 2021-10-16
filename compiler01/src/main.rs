@@ -116,6 +116,10 @@ fn compile_condition(cond: &Condition) -> anyhow::Result<TestExpr> {
             test_statement: "TEST EOF".to_string(),
             negate: false,
         }),
+        Condition::ChannelReady => Ok(TestExpr {
+            test_statement: "TEST MRD".to_string(),
+            negate: false,
+        }),
     }
 }
 

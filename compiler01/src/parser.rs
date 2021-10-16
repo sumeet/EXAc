@@ -57,6 +57,7 @@ pub enum Condition {
     GreaterThan(Expr, Expr),
     Not(Box<Condition>),
     EOF,
+    ChannelReady,
 }
 
 #[derive(Debug)]
@@ -275,6 +276,7 @@ peg::parser! {
 
         rule condition() -> Condition
             = equals() / not_equals() / less_than() / greater_than() / not_of_condition() / feof()
+              / chready()
         rule equals() -> Condition
             = lhs:expr() _? "==" _? rhs:expr() { Condition::Equals(lhs, rhs) }
         rule not_equals() -> Condition
@@ -286,6 +288,7 @@ peg::parser! {
         rule not_of_condition() -> Condition
             = "!" _? cond:condition() { Condition::Not(Box::new(cond)) }
         rule feof() -> Condition = "feof" { Condition::EOF }
+        rule chready() -> Condition = "chready" { Condition::ChannelReady }
 
         rule num_or_var() -> NumOrVar
             = num_or_var_num() / num_or_var_var()

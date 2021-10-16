@@ -7,42 +7,27 @@ xa {
     #pass = code/x ~ 1
     spawn {
       // this will fail if the code isn't open
-      link 800
+      link 800, -1
+      kill
       $ch = code/x
+      HALT
     }
     code/x += 1
  }
 }
 
 xb {
-  while(1 != 0) {
-    spawn {
-      link 800, 800
-      open(199) -> file {
-        rdk_id/t = fread()
-      }
-      link -1, -1
-      fcreate() {
-        code/x = $ch
-        fwrite(code/x ~ 3)
-        fwrite(code/x ~ 2)
-        fwrite(code/x ~ 1)
-        fwrite(rdk_id/t)
-      }
-
-      i/x = 0
-      while (i/x < 5) {
-        kill
-      }
-      link 800
-      while (i/x < 5) {
-        kill
-      }
-      link 800
-      while (i/x < 5) {
-        kill
-      }
-      HALT
-    }
+  while(!chready) { }
+  link 800, 800
+  open(199) -> file {
+    rdk_id/t = fread()
+  }
+  link -1, -1
+  fcreate() {
+    code/x = $ch
+    fwrite(code/x ~ 3)
+    fwrite(code/x ~ 2)
+    fwrite(code/x ~ 1)
+    fwrite(rdk_id/t)
   }
 }
