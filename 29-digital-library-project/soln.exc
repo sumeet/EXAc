@@ -1,0 +1,40 @@
+xa {
+  fopen(300) {
+    while (!feof) {
+      $ch = fread()
+    }
+  }
+  link 800
+  // kill xb
+  wait 10
+  kill
+}
+
+xb {
+  link 800
+  while (1 != 0) {
+    call_num/x = $ch
+
+    spawn {
+      while(call_num/x > 100) {
+        link 800
+        call_num/x -= 100
+      }
+      call_num/x += 200
+
+      fopen(call_num/x) {
+        chtoggle()
+        spawn {
+          fcreate() {
+            loop { fwrite($ch) }
+          }
+        }
+        while (!feof) {
+          $ch = fread()
+        }
+      }
+
+      HALT
+    }
+  }
+}

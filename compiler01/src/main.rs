@@ -69,6 +69,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         Expr::GlobalLink(_) => Ok("M".to_owned()),
         Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
+        | Expr::ChannelToggle
         | Expr::CreateFileBlock(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
@@ -202,7 +203,7 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
         .iter()
         .map(|expr| match expr {
             Expr::OpenFileBlock(open_file_block) => {
-                let mut v = vec![format!("GRAB {}", to_arg(&open_file_block.file_id))];
+                let mut v = vec![format!("GRAB {}", to_reg_name(&open_file_block.file_id))];
                 v.extend(compile_block(&open_file_block.block)?);
                 v.push("DROP".to_owned());
                 Ok(v)
@@ -214,6 +215,7 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
                 Ok(v)
             }
             Expr::Assignment(assignment) => assign_expr(assignment),
+            Expr::ChannelToggle => Ok(vec!["MODE".to_string()]),
             Expr::Halt => Ok(vec!["HALT".to_string()]),
             Expr::Kill => Ok(vec!["KILL".to_string()]),
             Expr::Wait(n) => Ok(repeat("NOOP".to_string()).take(*n as _).collect()),

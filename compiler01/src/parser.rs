@@ -20,6 +20,7 @@ pub struct Block {
 pub enum Expr {
     OpenFileBlock(OpenFileBlock),
     CreateFileBlock(Box<Block>),
+    ChannelToggle,
     Assignment(Assignment),
     FileOp(FileOp),
     Halt,
@@ -67,8 +68,7 @@ pub struct Link {
 
 #[derive(Debug)]
 pub struct OpenFileBlock {
-    pub file_id: NumOrVar,
-    binding: String,
+    pub file_id: Operand,
     pub block: Block,
 }
 
@@ -151,7 +151,7 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = (open_file_block() / create_file_block() / file_write() / assignment() / file_op() /
+            = (open_file_block() / create_file_block() / channel_toggle() / file_write() / assignment() / file_op() /
                link() / wait() / kill() / halt() / while() / if() / spawn() / x_var_ref() /
                t_var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
@@ -168,9 +168,12 @@ peg::parser! {
             = "$" ident:ident() { Expr::GlobalLink(ident.to_owned() )}
 
         rule open_file_block() -> Expr
-            = "open(" _? file_id:num_or_var() _? ")" _? "->" _? binding:ident() _? block:block() {
-                Expr::OpenFileBlock(OpenFileBlock { file_id, binding: binding.to_owned(), block })
+            = "fopen" _? "(" _? file_id:operand() _? ")" _? block:block() {
+                Expr::OpenFileBlock(OpenFileBlock { file_id, block })
             }
+        rule channel_toggle() -> Expr
+            = "chtoggle" _? "(" _? ")" { Expr::ChannelToggle }
+
         rule create_file_block() -> Expr
             = "fcreate" _? "(" _? ")" _? block:block() { Expr::CreateFileBlock(Box::new(block)) }
 
@@ -203,7 +206,7 @@ peg::parser! {
             }
         rule op_assignment() -> Expr
             = dest:operand() _? binop:binop() "=" _? src:operand() {?
-                let src = AssignSource::BinOp(src, binop, dest.clone());
+                let src = AssignSource::BinOp(dest.clone(), binop, src);
                 let assignment = Assignment::new(dest, src).map_err(|e| "regular_assignment")?;
                 Ok(Expr::Assignment(assignment))
             }
