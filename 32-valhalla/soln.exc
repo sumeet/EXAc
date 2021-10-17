@@ -1,0 +1,15 @@
+xa {
+  loop {
+    spawn {
+     loop {
+      link 800
+      #ctrl = 420
+     }
+    }
+  }
+}
+
+xb {
+  link 800, -1
+  loop { #ctrl = 420 }
+}
