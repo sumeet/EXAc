@@ -227,7 +227,11 @@ impl CompileContext {
 
         let mut v = vec![];
         v.push(format!("MARK {}", start_of_loop_label));
+
+        self.push_loop_start_label(start_of_loop_label.clone());
         v.extend(self.compile_block(&block)?);
+        self.pop_loop_start_label();
+
         v.push(format!("JUMP {}", start_of_loop_label));
         Ok(v)
     }

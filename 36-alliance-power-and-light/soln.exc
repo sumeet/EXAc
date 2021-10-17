@@ -25,6 +25,7 @@ xa {
         link GO_NORTH
         temp/t = hostid
         if (host_to_find/x == temp/t)  {
+          wait 5
           powr = 0
           HALT
         }
@@ -36,6 +37,7 @@ xa {
         link GO_SOUTH
         temp/t = hostid
         if (host_to_find/x == temp/t)  {
+          wait 5
           powr = 0
           HALT
         }
@@ -49,6 +51,7 @@ xa {
         link GO_EAST
         continue
       }
+      wait 5
       powr = 0
     } else {
       link GO_EAST
