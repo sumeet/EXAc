@@ -1,0 +1,53 @@
+st {
+  spawn {
+    fileno/x = 200
+    while (fileno/x < 300) {
+      spawn {
+        link 800
+        fopen(fileno/x) {
+          // skip the name... for now
+          file.seek(1)
+
+          ba_za/x = fread() + fread()
+          ba_za_apb/x = ba_za/x + fread()
+          ba_za_apb/x /= 3
+
+          wrt_oi/t = fread() * fread()
+          wrt_oi_od/t = wrt_oi/t / fread()
+
+          sum/x = ba_za_apb/x + wrt_oi_od/t
+
+          pc_ps/t = fread() - fread()
+          pc_ps/t *= 20
+
+          $ch = sum/x + pc_ps/t
+          $ch = sum/x + pc_ps/t
+          file.seek(-9999)
+          $ch = fread()
+
+          HALT
+        }
+      }
+
+      fileno/x += 1
+    }
+    wait 20
+    kill
+    HALT
+  }
+
+  fcreate() {
+    highscore/x = 0
+    loop {
+      if ($get > highscore/x) {
+        highscore/x = $get
+        file.seek(-9999)
+        fwrite($get)
+      } else {
+        // discard the rest of the result
+        chwait()
+        chwait()
+      }
+    }
+  }
+}
