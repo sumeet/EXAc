@@ -1,0 +1,29 @@
+xm {
+  link 800, -3, -3
+  loop {
+    x/x = #nerv
+    link 3, 3, 3, 3
+    #nerv = x/x
+    link -3, -3, -3, -3
+  }
+}
+
+xh {
+  link 800, 3, 3, 3
+  loop {
+    x/x = #nerv
+    link -3, -3, -3, -3, -3, -3
+    #nerv = x/x
+    link 3, 3, 3, 3, 3, 3
+  }
+}
+
+xp {
+  link 800, 3, 3, 3, 3
+  loop {
+    x/x = #nerv
+    link -3, -3, -3, -3, -3, -3, -3, -3
+    #nerv = x/x
+    link 3, 3, 3, 3, 3, 3, 3, 3
+  }
+}
