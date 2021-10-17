@@ -1,26 +1,67 @@
+#define ERASE_BACK -2
+#define EOF -1
+#define auth #auth
+
 xa {
-  link 800
-  #auth =  8
-  #auth =  0
-  #auth =  3
-  #auth =  2
-  #auth =  7
-  #auth =  1
-  #auth =  0
-  #auth =  4
-  #auth =  9
-  #auth =  5
-  #auth =  1
-  #auth =  2
-  #auth =  5
-  #auth =  2
-  #auth =  6
+  fopen(300) {
+    region/x = fread()
+  }
 
   link 800
-  trak/x = #track
-  fopen(trak/x) {
-    while (!feof) {
-      $global = fread()
+  auth =  8
+  auth =  0
+  auth =  3
+  auth =  2
+  auth =  7
+  auth =  1
+  auth =  0
+  auth =  4
+  auth =  9
+  auth =  5
+  auth =  1
+  auth =  2
+  auth =  5
+  auth =  2
+  auth =  6
+
+  spawn {
+    loop {
+      trak/t = #trak
+      link 801
+      fopen(trak/t) {
+        while (!feof) {
+          file_data/t = fread()
+           // > 999 will be true if it's a 4-digit number
+           // i think the way it works is any comparison with a number will be False
+           $global = file_data/t
+           // TODO: need to be able to negate this
+           if (file_data/t > 999) {
+           } else {
+            $global = ERASE_BACK
+            $global = region/x
+           }
+        }
+        $global = -1
+      }
+      // go back so we can grab the #trak
+      link -1
+    }
+  }
+
+  spawn {
+    link 800
+    loop {
+      recvd/x = $global
+      fcreate() {
+        while (recvd/x != EOF) {
+          if (recvd/x == ERASE_BACK) {
+            file.seek(-1)
+          } else {
+            fwrite(recvd/x)
+          }
+          recvd/x = $global
+        }
+      }
     }
   }
 }

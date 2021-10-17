@@ -288,10 +288,10 @@ fn main() -> anyhow::Result<()> {
     let program = parser::parser::program(&program_txt)?;
     //dbg!(p);
     for exa in program.exas {
-        println!("-- exa {} --", exa.name);
+        // println!("-- exa {} --", exa.name);
         println!("{}", compile_exa(&exa)?.join("\n"));
-        println!();
-        println!();
+        // println!();
+        // println!();
     }
     Ok(())
 }
