@@ -1,0 +1,41 @@
+// kills all guys and signals when done
+xa {
+  link 800
+
+  ln/x = 800
+  while (ln/x < 806) {
+    link ln
+    %repeat(11) { kill }
+    link -1
+    ln/x += 1
+  }
+
+  spawn {
+    link -1
+    fopen(300) {
+      player_id/x = fread()
+      loop { $ch = player_id/x }
+    }
+  }
+
+  ln/x = 800
+  while (ln/x < 806) {
+    link ln
+    spawn {
+      fileid/x = 200
+      while (fileid/x < 301) {
+        spawn {
+          fopen(fileid/x) {
+            file.seek(2)
+            fwrite($ch)
+            HALT
+          }
+        }
+        fileid/x += 1
+      }
+      HALT
+    }
+    link -1
+    ln/x += 1
+  }
+}

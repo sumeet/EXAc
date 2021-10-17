@@ -38,6 +38,7 @@ pub enum Expr {
     SpecialReg(String),
     GlobalLink(String),
     LiteralNum(i32),
+    Repeat(usize, Block),
 }
 
 #[derive(Debug)]
@@ -157,7 +158,7 @@ peg::parser! {
 
         rule expr() -> Expr
             = (open_file_block() / create_file_block() / channel_toggle() / channel_wait() / file_write() / assignment() / file_op() /
-               link() / wait() / kill() / halt() / continue() / loop() / while() / if() / spawn() / x_var_ref() /
+               link() / wait() / kill() / halt() / repeat() / continue() / loop() / while() / if() / spawn() / x_var_ref() /
                t_var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
         rule literal_num() -> Expr
@@ -172,6 +173,10 @@ peg::parser! {
         rule global_link_expr() -> Expr
             = "$" ident:ident() { Expr::GlobalLink(ident.to_owned() )}
 
+        rule repeat() -> Expr
+            = "%repeat" _? "(" _? num:num() _? ")" _? block:block() {
+                Expr::Repeat(num as _, block)
+            }
         rule open_file_block() -> Expr
             = "fopen" _? "(" _? file_id:operand() _? ")" _? block:block() {
                 Expr::OpenFileBlock(OpenFileBlock { file_id, block })

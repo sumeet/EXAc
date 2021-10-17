@@ -13,7 +13,7 @@ endif
 syntax keyword excTodos TODO XXX FIXME NOTE
 
 " Language keywords
-syntax keyword excKeywords feof fread fdrop fseek fcreate fwrite kill HALT link const spawn chready wait chtoggle fopen loop chwait hostid continue
+syntax keyword excKeywords feof fread fdrop fseek fcreate fwrite kill HALT link const spawn chready wait chtoggle fopen loop chwait hostid continue repeat
 syntax keyword excLoopKeywords while if else
 
 " Comments
@@ -42,6 +42,7 @@ highlight default link excKeywords Keyword
 " comments are highlighted as strings in this lang
 " TODO: only some strings treated as values highlighted this way
 " highlight default link excCommentLine Comment
+highlight default link excDirective PreProc
 highlight default link excLoopKeywords Repeat
 highlight default link excDecInt Number
 "highlight default link excHexInt Number

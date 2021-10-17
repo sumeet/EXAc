@@ -74,6 +74,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         Expr::GlobalLink(_) => Ok("M".to_owned()),
         Expr::LiteralNum(n) => Ok(n.to_string()),
         Expr::OpenFileBlock(_)
+        | Expr::Repeat(_, _)
         | Expr::ChannelToggle
         | Expr::ChannelWait
         | Expr::CreateFileBlock(_)
@@ -118,6 +119,10 @@ impl CompileContext {
             .exprs
             .iter()
             .map(|expr| match expr {
+                Expr::Repeat(n, block) => {
+                    let compiled_block = self.compile_block(block)?;
+                    Ok(repeat(compiled_block).take(*n).flatten().collect())
+                }
                 Expr::OpenFileBlock(open_file_block) => {
                     let mut v = vec![format!("GRAB {}", to_reg_name(&open_file_block.file_id)?)];
                     v.extend(self.compile_block(&open_file_block.block)?);
