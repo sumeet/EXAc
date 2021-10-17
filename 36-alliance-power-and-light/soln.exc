@@ -1,0 +1,57 @@
+#define GO_NORTH 800
+#define GO_EAST 801
+#define GO_SOUTH 802
+#define GO_WEST 803
+#define powr #powr
+
+xa {
+  fopen(300) {
+    host_to_find/x = fread()
+  }
+
+  spawn {
+    fopen(300) {
+      file.seek(1)
+      host_to_find/x = fread()
+    }
+  }
+
+  // step into GIS
+  link 800
+
+  loop {
+    spawn {
+      loop {
+        link GO_NORTH
+        temp/t = hostid
+        if (host_to_find/x == temp/t)  {
+          powr = 0
+          HALT
+        }
+      }
+    }
+
+    spawn {
+      loop {
+        link GO_SOUTH
+        temp/t = hostid
+        if (host_to_find/x == temp/t)  {
+          powr = 0
+          HALT
+        }
+      }
+    }
+
+    temp/t = hostid
+    if (host_to_find/x == temp/t)  {
+      // cutting the power kills us, so spawn an eastward bound clone beforehand
+      spawn {
+        link GO_EAST
+        continue
+      }
+      powr = 0
+    } else {
+      link GO_EAST
+    }
+  }
+}

@@ -25,6 +25,7 @@ pub enum Expr {
     Assignment(Assignment),
     FileOp(FileOp),
     Halt,
+    Continue,
     Kill,
     Link(Link),
     Wait(u32),
@@ -86,6 +87,7 @@ impl Assignment {
             Operand::LiteralNum(_) => {
                 bail!("can't assign into a literal number: {:?}", dest)
             }
+            Operand::HostID => bail!("can't assign into a host ID"),
             Operand::File
             | Operand::GlobalLink(_)
             | Operand::SpecialRegister(_)
@@ -114,6 +116,7 @@ pub enum AssignSource {
 #[derive(Debug, Clone)]
 pub enum Operand {
     File,
+    HostID,
     GlobalLink(String),
     SpecialRegister(String),
     XVarName(String),
@@ -154,7 +157,7 @@ peg::parser! {
 
         rule expr() -> Expr
             = (open_file_block() / create_file_block() / channel_toggle() / channel_wait() / file_write() / assignment() / file_op() /
-               link() / wait() / kill() / halt() / loop() / while() / if() / spawn() / x_var_ref() /
+               link() / wait() / kill() / halt() / continue() / loop() / while() / if() / spawn() / x_var_ref() /
                t_var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
         rule literal_num() -> Expr
@@ -217,7 +220,7 @@ peg::parser! {
 
         rule operand() -> Operand
             = x_var_operand() / t_var_operand() / special_reg_operand() / global_link_operand() /
-              literal_num_operand() / file_read_operand()
+              literal_num_operand() / file_read_operand() / host_id_operand()
 
         rule x_var_operand() -> Operand
             = name:ident() _? "/" _? "x" { Operand::XVarName(name.to_owned()) }
@@ -231,6 +234,8 @@ peg::parser! {
             = num:num() { Operand::LiteralNum(num) }
         rule file_read_operand() -> Operand
             = "fread" _? "(" _? ")" { Operand::File }
+        rule host_id_operand() -> Operand
+            = "hostid" { Operand::HostID }
 
         rule assign_source() -> AssignSource
             = binop_assign_source() / operand_assign_source()
@@ -264,6 +269,8 @@ peg::parser! {
             = "HALT" { Expr::Halt }
         rule spawn() -> Expr
             = "spawn" _? block:block() { Expr::Spawn(Box::new(block)) }
+        rule continue() -> Expr
+            = "continue" { Expr::Continue }
         rule loop() -> Expr
             = "loop" _? block:block() { Expr::Loop(Box::new(block)) }
         rule while() -> Expr

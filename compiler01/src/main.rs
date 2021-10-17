@@ -19,15 +19,16 @@ fn rand_label_id() -> String {
         .collect()
 }
 
-fn to_reg_name(operand: &parser::Operand) -> String {
-    match operand {
+fn to_reg_name(operand: &parser::Operand) -> anyhow::Result<String> {
+    Ok(match operand {
         Operand::File => "F".to_owned(),
         Operand::GlobalLink(_) => "M".to_owned(),
         Operand::SpecialRegister(name) => format!("#{}", name),
         Operand::TVarName(_) => "T".to_owned(),
         Operand::XVarName(_) => format!("X"),
         Operand::LiteralNum(n) => n.to_string(),
-    }
+        Operand::HostID => bail!("host_id requires special assignment"),
+    })
 }
 
 fn to_binop_instruction(binop: parser::BinOp) -> &'static str {
@@ -41,16 +42,20 @@ fn to_binop_instruction(binop: parser::BinOp) -> &'static str {
 }
 
 fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
-    let dest = to_reg_name(&assignment.dest);
+    let dest = to_reg_name(&assignment.dest)?;
     Ok(vec![match &assignment.src {
         AssignSource::Operand(src_operand) => {
-            let src = to_reg_name(src_operand);
-            format!("COPY {} {}", src, dest)
+            if let Operand::HostID = src_operand {
+                format!("HOST {}", dest)
+            } else {
+                let src = to_reg_name(src_operand)?;
+                format!("COPY {} {}", src, dest)
+            }
         }
         AssignSource::BinOp(lhs, binop, rhs) => {
             let instruction = to_binop_instruction(*binop);
-            let lhs = to_reg_name(lhs);
-            let rhs = to_reg_name(rhs);
+            let lhs = to_reg_name(lhs)?;
+            let rhs = to_reg_name(rhs)?;
             format!("{} {} {} {}", instruction, lhs, rhs, dest)
         }
     }])
@@ -81,6 +86,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         | Expr::FileOp(_)
         | Expr::If(_)
         | Expr::While(_)
+        | Expr::Continue
         | Expr::Loop(_) => {
             bail!("conditions not supported for {:?}", expr)
         }
@@ -216,7 +222,7 @@ fn compile_block(block: &parser::Block) -> anyhow::Result<Vec<String>> {
         .iter()
         .map(|expr| match expr {
             Expr::OpenFileBlock(open_file_block) => {
-                let mut v = vec![format!("GRAB {}", to_reg_name(&open_file_block.file_id))];
+                let mut v = vec![format!("GRAB {}", to_reg_name(&open_file_block.file_id)?)];
                 v.extend(compile_block(&open_file_block.block)?);
                 v.push("DROP".to_owned());
                 Ok(v)
