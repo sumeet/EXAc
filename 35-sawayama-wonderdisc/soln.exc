@@ -1,0 +1,26 @@
+xa {
+  link 800
+  #auth =  8
+  #auth =  0
+  #auth =  3
+  #auth =  2
+  #auth =  7
+  #auth =  1
+  #auth =  0
+  #auth =  4
+  #auth =  9
+  #auth =  5
+  #auth =  1
+  #auth =  2
+  #auth =  5
+  #auth =  2
+  #auth =  6
+
+  link 800
+  trak/x = #track
+  fopen(trak/x) {
+    while (!feof) {
+      $global = fread()
+    }
+  }
+}
