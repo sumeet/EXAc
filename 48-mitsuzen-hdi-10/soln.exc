@@ -1,0 +1,58 @@
+xa {
+  link 800, 1, 3
+  loop {
+    $ch = 1337
+    #nerv = $ch
+  }
+}
+
+xb {
+  link 800
+  loop {
+    // wait for sync
+    chignore()
+
+    count/x = 0
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+    link 1
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+    link 1
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+    link -3
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+    link -1
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+    link -1
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+    link -3
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+    link 1
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+    link 1
+    if (#nerv > -55) { 
+      count/x += 1
+    }
+
+    count/x *= 5
+    count/x -= 75
+    $ch = count/x
+
+    link 3, 3, -1, -1
+  }
+}
