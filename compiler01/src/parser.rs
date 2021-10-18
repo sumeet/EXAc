@@ -20,6 +20,7 @@ pub struct Block {
 pub enum Expr {
     OpenFileBlock(OpenFileBlock),
     CreateFileBlock(Box<Block>),
+    FileVoid,
     ChannelToggle,
     ChannelIgnore,
     Assignment(Assignment),
@@ -157,7 +158,7 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = (open_file_block() / create_file_block() / channel_toggle() / channel_ignore() / file_write() / assignment() / file_op() /
+            = (open_file_block() / create_file_block() / channel_toggle() / channel_ignore() / file_void() / file_write() / assignment() / file_op() /
                link() / wait() / kill() / halt() / repeat() / continue() / loop() / while() / if() / spawn() / x_var_ref() /
                t_var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
@@ -181,6 +182,8 @@ peg::parser! {
             = "fopen" _? "(" _? file_id:operand() _? ")" _? block:block() {
                 Expr::OpenFileBlock(OpenFileBlock { file_id, block })
             }
+        rule file_void() -> Expr
+            = "fvoid" _? "(" _? ")" { Expr::FileVoid }
         rule channel_toggle() -> Expr
             = "chtoggle" _? "(" _? ")" { Expr::ChannelToggle }
         rule channel_ignore() -> Expr

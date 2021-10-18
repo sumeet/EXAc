@@ -80,6 +80,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         | Expr::CreateFileBlock(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
+        | Expr::FileVoid
         | Expr::Wait(_)
         | Expr::Halt
         | Expr::Spawn(_)
@@ -141,6 +142,7 @@ impl CompileContext {
                 Expr::Assignment(assignment) => assign_expr(assignment),
                 Expr::ChannelToggle => Ok(vec!["MODE".to_string()]),
                 Expr::ChannelIgnore => Ok(vec!["VOID M".to_string()]),
+                Expr::FileVoid => Ok(vec!["VOID F".to_string()]),
                 Expr::Halt => Ok(vec!["HALT".to_string()]),
                 Expr::Kill => Ok(vec!["KILL".to_string()]),
                 Expr::Wait(n) => Ok(repeat("NOOP".to_string()).take(*n as _).collect()),
@@ -253,6 +255,9 @@ impl CompileContext {
             let start_of_spawn_label = format!("SP_ST_{}_{}", block_i, spawn_id);
             v.push(format!("REPL {}", start_of_spawn_label));
         }
+
+        // main thread keeps going past all the spawns
+        v.push(format!("JUMP {}", end_of_spawn_label));
 
         for (block_i, block) in blocks.iter().enumerate() {
             let start_of_spawn_label = format!("SP_ST_{}_{}", block_i, spawn_id);

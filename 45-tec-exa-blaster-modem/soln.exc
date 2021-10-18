@@ -1,0 +1,48 @@
+#define NUM_DIGITS 11
+#define dial #dial
+
+xa {
+  fopen(300) {
+    link 800
+
+    while (!feof) {
+      digit/x = 0
+      while (digit/x < NUM_DIGITS) {
+        dial = fread()
+        file.seek(-1)
+        fvoid()
+        digit/x += 1
+      }
+
+      // go to the phone
+      link 800
+
+      spawn {
+        fopen(200) {
+          file.seek(1)
+          while (!feof) {
+            digit/x = 0
+            while (digit/x < NUM_DIGITS) {
+              $ch = fread()
+              digit/x += 1
+            }
+            file.seek(1)
+          }
+        }
+        $ch = -1
+        HALT
+      }
+
+      file.seek(9999)
+      digit/x = $ch
+      while (digit/x != -1) {
+        fwrite(digit/x)
+        digit/x = $ch
+      }
+      file.seek(-9999)
+
+      link -1
+      dial = -1
+    }
+  }
+}
