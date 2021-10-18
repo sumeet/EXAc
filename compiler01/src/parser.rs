@@ -32,7 +32,7 @@ pub enum Expr {
     While(Box<While>),
     Loop(Box<Block>),
     If(Box<If>),
-    Spawn(Box<Block>),
+    Spawn(Vec<Block>),
     XVarRef(String),
     TVarRef(String),
     SpecialReg(String),
@@ -273,7 +273,7 @@ peg::parser! {
         rule halt() -> Expr
             = "HALT" { Expr::Halt }
         rule spawn() -> Expr
-            = "spawn" _? block:block() { Expr::Spawn(Box::new(block)) }
+            = "spawn" _? blocks:(block() ** _) { Expr::Spawn(blocks) }
         rule continue() -> Expr
             = "continue" { Expr::Continue }
         rule loop() -> Expr

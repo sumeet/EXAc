@@ -1,0 +1,11 @@
+xa {
+  link 800
+  loop {
+    spawn { link 2 }
+          { link 3 }
+          { link 5 }
+          { link 7 }
+          { link 11 }
+          { link 13 }
+  }
+}

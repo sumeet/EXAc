@@ -157,7 +157,7 @@ impl CompileContext {
                     Ok(vec![format!("JUMP {}", prev_start_label)])
                 }
                 Expr::While(r#while) => self.compile_while(r#while),
-                Expr::Spawn(block) => self.compile_spawn(block),
+                Expr::Spawn(blocks) => self.compile_spawn(blocks),
                 Expr::Loop(block) => self.compile_loop(block),
                 Expr::If(r#if) => self.compile_if(r#if),
                 Expr::FileOp(file_op) => self.compile_file_op(file_op),
@@ -244,16 +244,22 @@ impl CompileContext {
         Ok(v)
     }
 
-    fn compile_spawn(&mut self, block: &parser::Block) -> anyhow::Result<Vec<String>> {
+    fn compile_spawn(&mut self, blocks: &[parser::Block]) -> anyhow::Result<Vec<String>> {
         let spawn_id = rand_label_id();
-        let start_of_spawn_label = format!("SP_ST_{}", spawn_id);
         let end_of_spawn_label = format!("SP_EN_{}", spawn_id);
 
         let mut v = vec![];
-        v.push(format!("REPL {}", start_of_spawn_label));
-        v.push(format!("JUMP {}", end_of_spawn_label));
-        v.push(format!("MARK {}", start_of_spawn_label));
-        v.extend(self.compile_block(&block)?);
+        for block_i in 0..blocks.len() {
+            let start_of_spawn_label = format!("SP_ST_{}_{}", block_i, spawn_id);
+            v.push(format!("REPL {}", start_of_spawn_label));
+        }
+
+        for (block_i, block) in blocks.iter().enumerate() {
+            let start_of_spawn_label = format!("SP_ST_{}_{}", block_i, spawn_id);
+            v.push(format!("MARK {}", start_of_spawn_label));
+            v.extend(self.compile_block(&block)?);
+            v.push(format!("JUMP {}", end_of_spawn_label));
+        }
         v.push(format!("MARK {}", end_of_spawn_label));
         Ok(v)
     }
