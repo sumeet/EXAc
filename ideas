@@ -1,0 +1,69 @@
+xa {
+  spawn {
+    // read and set azimuth
+    fopen(300) {
+      file.seek(1)
+      azimuth/x = fread()
+    }
+    link 800, 799, 800
+    while (#azim < azimuth/x) {
+      #motr = 1
+    }
+    while (#azim > azimuth/x) {
+      #motr = -1
+    }
+    HALT
+  }
+
+  spawn {
+    // read and set elevation
+    wait 4
+    fopen(300) {
+      file.seek(3)
+      elevation/x = fread()
+    }
+    link 800, 799, 801
+    while (#elev < elevation/x) {
+      #motr = 1
+    }
+    while (#elev > elevation/x) {
+      #motr = -1
+    }
+    HALT
+  }
+
+  // read and set frequency
+  wait 8
+  fopen(300) {
+    file.seek(5)
+    frequency/x = fread()
+  }
+  fopen(301) {
+    link 800, 799
+    #freq = frequency/x
+
+    // encrypt and transmit the file over the wire
+    #data = fread()
+    while (!feof) {
+      key/x = $ch
+      data/t = fread()
+      #data = fread()
+    }
+
+    file.wipe()
+  }
+}
+
+xb {
+  data_count/x = 24
+  link 800
+  fopen(199) {
+    while(data_count/x > 0) {
+      if (feof) {
+        file.seek(-9999)
+      }
+      $ch = fread()
+      data_count/x -= 1
+    }
+  }
+}

@@ -1,0 +1,81 @@
+xa {
+  // take the movie file to the freq host and drop it off
+  spawn {
+    fopen(301) {
+      link 800, 799
+      HALT
+    }
+  }
+
+  fopen(300) {
+    file.seek(1)
+    azimuth/x = fread()
+
+    link 800, 799, 800
+    while (#azim < azimuth/x) {
+      #motr = 1
+    }
+    while (#azim > azimuth/x) {
+      #motr = -1
+    }
+
+    link -1, 801
+    file.seek(1)
+    elevation/x = fread()
+    while (#elev < elevation/x) {
+      #motr = 1
+    }
+    while (#elev > elevation/x) {
+      #motr = -1
+    }
+
+    link -1
+    file.seek(1)
+    frequency/x = fread()
+    #freq = frequency/x
+
+    // TODO: this is scuffed...
+    file.wipe()
+
+    fopen(301) {
+      #data = fread()
+      while (!feof) {
+        key/x = $ch
+        data/t = fread()
+        spawn {
+          encrypted/x = key/x + data/t
+          if (encrypted/x < 9999) {
+            #data = encrypted/x
+          }
+          HALT
+        }
+        spawn {
+          encrypted/x = 9999 - key/x
+          encrypted/x -= data/t
+          if (encrypted/x < 0) {
+            encrypted/x += 1
+            encrypted/x *= -1
+            #data = encrypted/x
+          }
+          HALT
+        }
+      }
+  
+      file.wipe()
+    }
+  }
+}
+
+xb {
+  data_count/x = 24
+  link 800
+  fopen(199) {
+    while(data_count/x > 0) {
+      if (feof) {
+        file.seek(-9999)
+      }
+      $ch = fread()
+      data_count/x -= 1
+    }
+  }
+}
