@@ -21,7 +21,7 @@ pub enum Expr {
     OpenFileBlock(OpenFileBlock),
     CreateFileBlock(Box<Block>),
     ChannelToggle,
-    ChannelWait,
+    ChannelIgnore,
     Assignment(Assignment),
     FileOp(FileOp),
     Halt,
@@ -157,7 +157,7 @@ peg::parser! {
             = _* expr:expr() _* { expr }
 
         rule expr() -> Expr
-            = (open_file_block() / create_file_block() / channel_toggle() / channel_wait() / file_write() / assignment() / file_op() /
+            = (open_file_block() / create_file_block() / channel_toggle() / channel_ignore() / file_write() / assignment() / file_op() /
                link() / wait() / kill() / halt() / repeat() / continue() / loop() / while() / if() / spawn() / x_var_ref() /
                t_var_ref() / special_reg_expr() / global_link_expr() / literal_num())
 
@@ -183,8 +183,8 @@ peg::parser! {
             }
         rule channel_toggle() -> Expr
             = "chtoggle" _? "(" _? ")" { Expr::ChannelToggle }
-        rule channel_wait() -> Expr
-            = "chwait" _? "(" _? ")" { Expr::ChannelWait }
+        rule channel_ignore() -> Expr
+            = "chignore" _? "(" _? ")" { Expr::ChannelIgnore }
 
         rule create_file_block() -> Expr
             = "fcreate" _? "(" _? ")" _? block:block() { Expr::CreateFileBlock(Box::new(block)) }
@@ -297,7 +297,7 @@ peg::parser! {
 
         rule condition() -> Condition
             = equals() / not_equals() / less_than() / greater_than() / not_of_condition() / feof()
-              / chready()
+              / chignore()
         rule equals() -> Condition
             = lhs:expr() _? "==" _? rhs:expr() { Condition::Equals(lhs, rhs) }
         rule not_equals() -> Condition
@@ -309,7 +309,7 @@ peg::parser! {
         rule not_of_condition() -> Condition
             = "!" _? cond:condition() { Condition::Not(Box::new(cond)) }
         rule feof() -> Condition = "feof" { Condition::EOF }
-        rule chready() -> Condition = "chready" { Condition::ChannelReady }
+        rule chignore() -> Condition = "chignore" { Condition::ChannelReady }
 
         rule num_or_var() -> NumOrVar
             = num_or_var_num() / num_or_var_var()

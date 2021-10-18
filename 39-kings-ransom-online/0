@@ -1,12 +1,9 @@
-// kills all guys and signals when done
 xa {
   link 800
-
   ln/x = 800
   while (ln/x < 806) {
     link ln
     %repeat(11) { kill }
-
     spawn {
       chtoggle()
       fileid/x = 200
@@ -21,11 +18,9 @@ xa {
       }
       HALT
     }
-
     link -1
     ln/x += 1
   }
-
   spawn {
     link -1
     fopen(300) {
@@ -33,7 +28,6 @@ xa {
       loop { $ch = player_id/x }
     }
   }
-
   ln/x = 800
   while (ln/x < 806) {
     link ln
@@ -58,7 +52,6 @@ xa {
     ln/x += 1
   }
 }
-
 xb {
   link 800
   chtoggle()
@@ -69,7 +62,4 @@ xb {
   }
   link -1
   kill
-  fopen(300) {
-    file.wipe()
-  }
 }

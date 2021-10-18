@@ -76,7 +76,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         Expr::OpenFileBlock(_)
         | Expr::Repeat(_, _)
         | Expr::ChannelToggle
-        | Expr::ChannelWait
+        | Expr::ChannelIgnore
         | Expr::CreateFileBlock(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
@@ -120,8 +120,11 @@ impl CompileContext {
             .iter()
             .map(|expr| match expr {
                 Expr::Repeat(n, block) => {
-                    let compiled_block = self.compile_block(block)?;
-                    Ok(repeat(compiled_block).take(*n).flatten().collect())
+                    let mut v = vec![];
+                    for _ in 0..*n {
+                        v.extend(self.compile_block(block)?);
+                    }
+                    Ok(v)
                 }
                 Expr::OpenFileBlock(open_file_block) => {
                     let mut v = vec![format!("GRAB {}", to_reg_name(&open_file_block.file_id)?)];
@@ -137,7 +140,7 @@ impl CompileContext {
                 }
                 Expr::Assignment(assignment) => assign_expr(assignment),
                 Expr::ChannelToggle => Ok(vec!["MODE".to_string()]),
-                Expr::ChannelWait => Ok(vec!["VOID M".to_string()]),
+                Expr::ChannelIgnore => Ok(vec!["VOID M".to_string()]),
                 Expr::Halt => Ok(vec!["HALT".to_string()]),
                 Expr::Kill => Ok(vec!["KILL".to_string()]),
                 Expr::Wait(n) => Ok(repeat("NOOP".to_string()).take(*n as _).collect()),
@@ -327,18 +330,28 @@ fn remove_comments(txt: &str) -> String {
 }
 
 fn main() -> anyhow::Result<()> {
-    let filename = std::env::args()
-        .nth(1)
-        .ok_or(anyhow!("usage: exc <filename>"))?;
+    let mut args = std::env::args();
+    let program_name = args.next().ok_or_else(|| anyhow!("missing filename"))?;
+    let filename = args.next().ok_or_else(|| {
+        anyhow!(
+            "usage: {} <filename> [exa number (default 0)]",
+            program_name
+        )
+    })?;
+    let exa_num: usize = args.next().map(|arg| arg.parse().unwrap()).unwrap_or(0);
+
     let program_txt = remove_comments(&std::fs::read_to_string(filename)?);
     let program = parser::parser::program(&program_txt)?;
     let mut compiler = CompileContext::new();
     //dbg!(p);
-    for exa in program.exas {
-        // println!("-- exa {} --", exa.name);
-        println!("{}", compiler.compile_exa(&exa)?.join("\n"));
-        // println!();
-        // println!();
-    }
+    // for exa in program.exas {
+    // println!("-- exa {} --", exa.name);
+    println!(
+        "{}",
+        compiler.compile_exa(&program.exas[exa_num])?.join("\n")
+    );
+    // println!();
+    // println!();
+    // }
     Ok(())
 }
