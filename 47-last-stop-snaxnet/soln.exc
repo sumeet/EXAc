@@ -1,0 +1,64 @@
+xa {
+  link 800, 799
+  fcreate() {
+    %repeat(5) {
+      // wait for a request
+      chignore()
+
+      winner/x = 0
+      if (#zgc0 > winner/x) {
+        winner/x = #zgc0
+        file.seek(-9999)
+        fwrite(0)
+      }
+      if (#zgc1 > winner/x) {
+        winner/x = #zgc1
+        file.seek(-9999)
+        fwrite(1)
+      }
+      if (#zgc2 > winner/x) {
+        winner/x = #zgc2
+        file.seek(-9999)
+        fwrite(2)
+      }
+      if (#zgc3 > winner/x) {
+        winner/x = #zgc3
+        file.seek(-9999)
+        fwrite(3)
+      }
+      if (#zgc4 > winner/x) {
+        winner/x = #zgc4
+        file.seek(-9999)
+        fwrite(4)
+      }
+      file.seek(-9999)
+      $ch = fread()
+      file.seek(-1)
+      $ch = fread()
+    }
+
+    file.wipe()
+    chignore()
+    $ch = -1
+  }
+}
+
+xb {
+  link 800, 798
+  loop {
+    $ch = 1337
+    zgc/x = $ch
+    if (zgc/x == -1) { HALT }
+    while (zgc/x > 0) {
+      link 800
+      zgc/x -= 1
+    }
+    #powr = 0
+    zgc/x = $ch
+    if (zgc/x == -1) { HALT }
+    while (zgc/x > 0) {
+      link -1
+      zgc/x -= 1
+    }
+  }
+}
