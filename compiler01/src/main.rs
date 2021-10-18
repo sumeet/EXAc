@@ -38,6 +38,7 @@ fn to_binop_instruction(binop: parser::BinOp) -> &'static str {
         BinOp::Div => "DIVI",
         BinOp::Mul => "MULI",
         BinOp::Swizzle => "SWIZ",
+        BinOp::Mod => "MODI",
     }
 }
 

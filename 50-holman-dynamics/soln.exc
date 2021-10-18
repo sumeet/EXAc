@@ -1,0 +1,41 @@
+#define CC_LENGTH 16
+
+xa {
+  link 800, 802, 799
+  fopen(199) {
+    loop {
+      i/x = 0
+      while (i/x < CC_LENGTH) {
+        spawn {
+          // to local
+          chtoggle()
+          digit/x = $local
+          if (digit/x > 9) {
+          }
+        }
+
+        mod/t = i/x % 2
+        // to local
+        chtoggle() // to local
+        // we're doubling evens instead of odds because we're 0 indexed
+        if (mod/t == 0) {
+          $local = fread() * 2
+        } else {
+          $local = fread()
+        }
+        // to global
+        chtoggle()
+      }
+    }
+  }
+}
+
+xb {
+  i/x = 0
+  fcreate() {
+    while (i/x < CC_LENGTH) {
+      fwrite($ch)
+      i/x += 1
+    }
+  }
+}

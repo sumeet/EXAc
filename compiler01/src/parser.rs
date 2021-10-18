@@ -107,6 +107,7 @@ pub enum BinOp {
     Div,
     Mul,
     Swizzle,
+    Mod,
 }
 
 #[derive(Debug)]
@@ -200,7 +201,7 @@ peg::parser! {
             }
 
         rule binop() -> BinOp
-            = add_op() / sub_op() / div_op() / mul_op() / swizzle_op()
+            = add_op() / sub_op() / div_op() / mul_op() / swizzle_op() / mod_op()
         rule add_op() -> BinOp
             = "+" { BinOp::Add }
         rule sub_op() -> BinOp
@@ -211,6 +212,8 @@ peg::parser! {
             = "*" { BinOp::Mul }
         rule swizzle_op() -> BinOp
             = "~" { BinOp::Swizzle }
+        rule mod_op() -> BinOp
+            = "%" { BinOp::Mod }
 
         rule assignment() -> Expr = regular_assignment() / op_assignment()
 
