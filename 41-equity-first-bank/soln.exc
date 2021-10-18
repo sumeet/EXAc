@@ -1,0 +1,63 @@
+#define OUR_ACCOUNT_FILE_ID 300
+#define CREDIT_DEBIT_FILE 301
+#define ACCOUNT_DIR_FILE_ID 199
+#define DONE 1337
+
+xa {
+  fopen(CREDIT_DEBIT_FILE) {
+    link 800, 800
+  }
+
+  link -1, -1
+
+  fopen(OUR_ACCOUNT_FILE_ID) {
+    link 800, 800
+  }
+
+  spawn {
+    loop {
+      fopen(OUR_ACCOUNT_FILE_ID) {
+        our_account_id/x = fread()
+      }
+      fopen(CREDIT_DEBIT_FILE) {
+        file.seek(1)
+        debit/t = fread()
+      }
+
+      fopen($ch) {
+        file.seek(9999)
+        fwrite(our_account_id/x)
+        fwrite(debit/t)
+        fwrite(1)
+        fwrite(0)
+        file.seek(-9999)
+        their_account_id/x = fread()
+      }
+      fopen(CREDIT_DEBIT_FILE) {
+        credit/t = fread()
+      }
+      fopen(OUR_ACCOUNT_FILE_ID) {
+        file.seek(9999)
+        fwrite(their_account_id/x)
+        fwrite(credit/t)
+        fwrite(1)
+        fwrite(0)
+      }
+      $ch = DONE
+    }
+  }
+
+  fopen(ACCOUNT_DIR_FILE_ID) {
+    while (!feof) {
+      $ch = fread()
+      // wait for DONE
+      chignore()
+    }
+    kill
+    fwrite(OUR_ACCOUNT_FILE_ID)
+  }
+  fopen(CREDIT_DEBIT_FILE) {
+    file.wipe()
+  }
+}
+
