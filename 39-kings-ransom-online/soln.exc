@@ -11,30 +11,6 @@ xa {
     ln/x += 1
   }
 
-  //ln/x = 800
-  //while (ln/x < 806) {
-  //  link ln
-
-  //  // spawn to gets it own fileid/x register
-  //  spawn {
-  //    chtoggle()
-  //    fileid/x = 200
-  //    while (fileid/x < 301) {
-  //      spawn {
-  //        fopen(fileid/x) { }
-  //        link -1
-  //        $ch = 1
-  //        HALT
-  //      }
-  //      fileid/x += 1
-  //    }
-  //    HALT
-  //  }
-
-  //  link -1
-  //  ln/x += 1
-  //}
-
   ln/x = 800
   while (ln/x < 806) {
     link ln
@@ -45,11 +21,8 @@ xa {
           player_id/t = $ch
           fopen(fileid/x) {
             file.seek(2)
-            fwrite($ch)
+            fwrite(player_id/t)
           }
-          link -1
-          chtoggle()
-          $ch = -1
           HALT
         }
         fileid/x += 1
@@ -62,23 +35,13 @@ xa {
 }
 
 xb {
-  link 800
-  chtoggle()
-  count/x = 0
-  count/x += $ch
-  while (count/x > 0) {
-    count/x += $ch
-  }
-  link -1
-  kill
+  num_requests/x = 606
   fopen(300) {
+    while (num_requests/x > 0) {
+      $ch = fread()
+      file.seek(-9999)
+      num_requests/x -= 1
+    }
     file.wipe()
-  }
-}
-
-xc {
-  fopen(300) {
-    player_id/x = fread()
-    loop { $ch = player_id/x }
   }
 }
