@@ -1,4 +1,5 @@
 #define NUM_DIGITS 11
+#define GOOD_NUMBER 6002
 #define dial #dial
 
 xa {
@@ -15,6 +16,19 @@ xa {
       }
 
       // go to the phone
+      spawn {
+        link 800
+        link -1
+        $ch = GOOD_NUMBER
+        HALT
+      }
+
+      wait 4
+      if (!chready) {
+        continue
+      }
+
+      chignore()
       link 800
 
       spawn {
