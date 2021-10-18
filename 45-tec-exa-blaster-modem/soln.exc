@@ -58,5 +58,7 @@ xa {
       link -1
       dial = -1
     }
+
+    file.wipe()
   }
 }
