@@ -20,8 +20,22 @@ xa {
         spawn {
           player_id/t = $ch
           fopen(fileid/x) {
+            player_id/x = player_id/t
+
+            // HALT if it's a weapon
+            while(!feof) {
+              if (file.read() < 200) {
+                HALT
+              }
+              file.seek(-1)
+              if (file.read() > 300) {
+                HALT
+              }
+            }
+            file.seek(-9999)
+
             file.seek(2)
-            fwrite(player_id/t)
+            fwrite(player_id/x)
           }
           HALT
         }
