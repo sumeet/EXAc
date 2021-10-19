@@ -7,7 +7,7 @@ mod parser;
 
 // HAX
 fn rand_label_id() -> String {
-    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const PASSWORD_LEN: usize = 5;
     let mut rng = rand::thread_rng();
 

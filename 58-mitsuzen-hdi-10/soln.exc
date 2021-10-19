@@ -1,61 +1,91 @@
-// including home
-#define NUM_TOTAL_NODES 12
-#define NERV #nerv
-
 xa {
-  fcreate() {
-    loop {
-      chtoggle()
-      $local = 1
-      chtoggle()
-      counter/x = 25
-      while (counter/x > 0) {
-        if (chready) {
-          fwrite($global)
-        }
-        counter/x -= 1
-      }
+  next_link/x = 800
+  loop {
+    link next_link/x
+    kill
+    spawn {
+      throwaway/t = #nerv
+      $ch = hostid
+      HALT
     }
+    if (next_link/x == 800) {
+      spawn { next_link/x = 1 }
+            { next_link/x = 3 }
+            { next_link/x = -3 }
+      continue
+    }
+    if (next_link/x == 1) {
+      spawn { next_link/x = 1 }
+            { next_link/x = 3 }
+            { next_link/x = -3 }
+      continue
+    }
+    if (next_link/x == -1) {
+      spawn { next_link/x = -1 }
+            { next_link/x = 3 }
+            { next_link/x = -3 }
+      continue
+    }
+    if (next_link/x == -3) {
+      spawn { next_link/x = -1 }
+            { next_link/x = 1 }
+            { next_link/x = -3 }
+      continue
+    }
+    if (next_link/x == 3) {
+      spawn { next_link/x = -1 }
+            { next_link/x = 1 }
+            { next_link/x = 3 }
+      continue
+    }
+    HALT
   }
 }
 
 xb {
-  // to local
-  chtoggle()
-  loop {
-    cmd/x = $local
-    if (cmd/x == 1) {
-      spawn {
-        chtoggle()
-        link 800
-        loop {
-          rnd/x = random(0, 3)
-          // 50% chance
-          if (rnd/x < 2) {
-            temp/t = #nerv
-            // if it has a nerv, then call home
-            temp/t = hostid
-            $global = temp/t
-            HALT
-          }
+  fcreate() {
+    num_iterations/x = 0
+    while(num_iterations/x < 100) {
+      if (chready) {
+        fwrite($ch)
+      }
+      num_iterations/x += 1
+    }
 
-          if (rnd/x == 0) {
-            link -1
-          }
-          if (rnd/x == 1) {
-            link 1
-          }
-          if (rnd/x == 2) {
-            link 3
-          }
-          if (rnd/x == 3) {
-            link -3
-          }
-        }
+    // first do a bubble sort
+    file.seek(-9999)
+    while (!feof) {
+      a/x = fread()
+      if (feof) { continue }
+      b/t = fread()
+      if (a/x > b/t) {
+        // swap
+        file.seek(-1)
+        b/x = fread()
+        file.seek(-2)
+        a/t = fread()
+        fwrite(a/t)
+        file.seek(-2)
+        fwrite(b/x)
+        file.seek(-9999)
+      } else {
+        file.seek(-1)
       }
     }
-    if (cmd/x == 9) {
-      HALT
+
+    // remove duplicates
+    file.seek(-9999)
+    while (!feof) {
+      a/x = fread()
+      if (feof) { continue }
+      b/t = fread()
+      if (a/x == b/t) {
+        file.seek(-1)
+        fvoid()
+      }
+      file.seek(-1)
     }
+
+    // now insert zeroes after all of the host IDs
   }
 }
