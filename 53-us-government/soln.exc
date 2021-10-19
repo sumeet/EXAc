@@ -31,12 +31,39 @@ xa {
       fcreate() {
         index/x = $ch
         while(index/x != -1) {
-          index/x = $ch
-          drive_no/t = $ch ~ 3
+          drive_no/t = index/x ~ 3
           drive_no/t += 800
           link drive_no/t
-          wait
+
+          file_id/t = index/x ~ 2
+          file_id/t += 200
+
+          offset/x = index/x ~ 1
+          offset/x *= 10
+
+          chtoggle()
+
+          spawn {
+            fopen(file_id/t) {
+              // TODO: this should be fseek(offset/x)
+              file.seek(offset)
+              loop { $ch = fread() }
+            }
+          }
+
+          i/x = 0
+          while (i/x < NUM_BLOCKS) {
+            fwrite($ch)
+            i/x += 1
+          }
+          kill
+
+          chtoggle()
+          link -1
+          index/x = $ch
         }
+        // this is where we have the sequence of the old guy
+        wait 10
       }
     }
 
