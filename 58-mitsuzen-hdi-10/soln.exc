@@ -86,6 +86,9 @@ xb {
       file.seek(-1)
     }
 
-    // now insert zeroes after all of the host IDs
+    // now read out all the host IDs in order locally
+    file.seek(-9999)
+    chtoggle()
   }
 }
+
