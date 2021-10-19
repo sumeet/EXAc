@@ -1,0 +1,19 @@
+xa {
+  link 800
+  loop {
+    spawn { link 800 }
+          { link 801 }
+          { link 802 }
+          { link 799 }
+  }
+}
+
+xb {
+  link 800, 802, 800, 799
+  loop { wait }
+}
+
+xc {
+  link 800, 801, 799
+  loop { wait }
+}
