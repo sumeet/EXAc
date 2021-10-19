@@ -10,6 +10,17 @@ xa {
         i/x += 1
       }
       $ch = -1
+
+      // HAX: read out the file twice so once validated,
+      // the reader exa can write it back out
+      file.seek(-16)
+      i/x = 0
+      while (i/x < 16) {
+        $ch = fread()
+        i/x += 1
+      }
+      $ch = -1
+
       file.seek(-15)
     }
   }
@@ -57,14 +68,26 @@ xb {
       if (sum/x < 0) {
         // there was garbage in here, let's bail
         file.wipe()
+        while ($ch != -1) {}
         continue
       }
       last_digit/x = sum/x ~ 1
       if (last_digit/x == 0) {
-        wait
+        file.seek(-9999)
+        digit/x = $ch
+        while (digit/x != -1) {
+          fwrite(digit/x)
+          digit/x = $ch
+        }
+        spawn {
+          link 800, 802, 799
+          kill
+          HALT
+        }
         HALT
       } else {
         file.wipe()
+        while ($ch != -1) {}
         continue
       }
     }
