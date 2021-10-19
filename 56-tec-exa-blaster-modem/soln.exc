@@ -25,17 +25,26 @@ xa {
       %repeat(NUM_DIGITS) { dial = fread() }
       spawn {
         link 800
-        temp/t = NUM_PAGERS - pagers_left/x
-        temp/t += 1
-        pagers_left/x *= 5
-        pagers_left/x -= temp/t
-        while (pagers_left/x > 0) { pagers_left/x -= 1 }
+        mod/t = countdown/x % 2
+        if (mod/t == 0) {
+          temp/t = 0
+          wait
+        } else {
+          temp/t = 1
+        }
+        temp/t += NUM_PAGERS
+        temp/t -= countdown/x
+        temp/t /= 2
+        countdown/x *= 5
+        countdown/x += temp/t
+        while (countdown/x > 0) { countdown/x -= 1 }
         page = 1
         HALT
       }
       pagers_left/x -= 1
       dial = -1
     }
+    file.wipe()
   }
 }
 
