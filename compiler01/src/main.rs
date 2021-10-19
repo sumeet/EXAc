@@ -79,6 +79,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         | Expr::ChannelToggle
         | Expr::ChannelIgnore
         | Expr::CreateFileBlock(_)
+        | Expr::CreateFileThenWipeBlock(_)
         | Expr::Assignment(_)
         | Expr::Link(_)
         | Expr::FileVoid
@@ -138,6 +139,12 @@ impl CompileContext {
                     let mut v = vec!["MAKE".to_owned()];
                     v.extend(self.compile_block(block)?);
                     v.push("DROP".to_owned());
+                    Ok(v)
+                }
+                Expr::CreateFileThenWipeBlock(block) => {
+                    let mut v = vec!["MAKE".to_owned()];
+                    v.extend(self.compile_block(block)?);
+                    v.push("WIPE".to_owned());
                     Ok(v)
                 }
                 Expr::Assignment(assignment) => assign_expr(assignment),

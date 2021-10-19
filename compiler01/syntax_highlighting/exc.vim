@@ -13,11 +13,11 @@ endif
 syntax keyword excTodos TODO XXX FIXME NOTE
 
 " Language keywords
-syntax keyword excKeywords feof fread fdrop fseek fcreate fwrite fvoid kill HALT link const spawn chready wait chtoggle fopen loop chignore hostid continue repeat
+syntax keyword excKeywords feof fread fdrop fseek fcreate fcreate_then_wipe fwrite fvoid kill HALT link const spawn chready wait chtoggle fopen loop chignore hostid continue repeat
 syntax keyword excLoopKeywords while if else
 
 " Comments
-syntax region excCommentLine start="//" end="$"   contains=excTodos,excCommentIdent
+syntax region excCommentLine start="//" end="$"   contains=excTodos
 syntax region excDirective start="%" end=" "
 
 syntax match excCommentIdent		"[#$][a-z_][a-z0-9_]*\>"

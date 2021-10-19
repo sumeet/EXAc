@@ -18,7 +18,7 @@ xa {
     HALT
   }
 
-  fcreate() {
+  fcreate_then_wipe() {
     index/x = $ch
     while(index/x != -1) {
       fwrite(index/x)
@@ -63,14 +63,84 @@ xa {
           index/x = $ch
         }
         // this is where we have the sequence of the old guy
-        wait 10
+        file.seek(-9999)
+        while (!feof) { $ch = fread() }
+        file.wipe()
+        HALT
       }
     }
 
+    // writes the sequence of block indeces
     file.seek(-9999)
     while (!feof) {
       $ch = fread()
     }
     $ch = -1
+  }
+
+  // go get the block sequence of the new guy
+  // we're going to interleave that with the sequence of the old guy which is 
+  // ready over the global channel right now
+  fopen(300) {
+    file.seek(1)
+    succ/x = fread()
+  }
+  link 800, 801
+  spawn {
+    chtoggle()
+    fopen(200) {
+      while (file.read() != succ/x) {}
+      i/x = 0
+      while (i/x < NUM_BLOCKS) {
+        $ch = fread()
+        i/x += 1
+      }
+      //$ch = -1
+    }
+    HALT
+  }
+
+  fcreate_then_wipe() {
+    i/x = 0
+    while (i/x < NUM_BLOCKS) {
+      // to local mode
+      chtoggle()
+      fwrite($ch)
+      // to global mode
+      chtoggle()
+      %repeat(NUM_BLOCKS) { fwrite($ch) }
+      i/x += 1
+    }
+
+    // almost there...!!!!
+    link -1
+    file.seek(-9999)
+    while (!feof) {
+      index/x = fread()
+      drive_no/t = index/x ~ 3
+      drive_no/t += 800
+      link drive_no/t
+
+      file_id/t = index/x ~ 2
+      file_id/t += 200
+
+      offset/x = index/x ~ 1
+      offset/x *= 10
+
+      spawn {
+        fopen(file_id/t) {
+          file.seek(offset)
+          loop { fwrite($ch) }
+        }
+      }
+
+      i/x = 0
+      while (i/x < NUM_BLOCKS) {
+        $ch = fread()
+        i/x += 1
+      }
+      kill
+      link -1
+    }
   }
 }
