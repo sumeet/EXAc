@@ -1,0 +1,49 @@
+#define NUM_BLOCKS 10
+
+xa {
+  spawn {
+    fopen(300) {
+      pres/x = fread()
+    }
+    link 800, 801
+    fopen(200) {
+      while (file.read() != pres/x) {}
+      i/x = 0
+      while (i/x < NUM_BLOCKS) {
+        $ch = fread()
+        i/x += 1
+      }
+      $ch = -1
+    }
+    HALT
+  }
+
+  fcreate() {
+    index/x = $ch
+    while(index/x != -1) {
+      fwrite(index/x)
+      index/x = $ch
+    }
+
+    // this is going to hold the sequence
+    spawn {
+      link 800
+      fcreate() {
+        index/x = $ch
+        while(index/x != -1) {
+          index/x = $ch
+          drive_no/t = $ch ~ 3
+          drive_no/t += 800
+          link drive_no/t
+          wait
+        }
+      }
+    }
+
+    file.seek(-9999)
+    while (!feof) {
+      $ch = fread()
+    }
+    $ch = -1
+  }
+}
