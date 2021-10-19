@@ -1,0 +1,53 @@
+#define NUM_PAGERS 8
+#define NUM_DIGITS 11
+#define dial #dial
+#define page #page
+#define data #data
+
+xa {
+  fopen(301) {
+    link 800
+    while (!feof) {
+      %repeat(NUM_DIGITS) { dial = fread() }
+      link 800
+      msg/x = $ch
+      while (msg/x != -1) {
+        data = msg/x
+        msg/x = $ch
+      }
+      link -1
+      dial = -1
+    }
+
+    file.seek(-9999)
+    pagers_left/x = NUM_PAGERS
+    while (!feof) {
+      %repeat(NUM_DIGITS) { dial = fread() }
+      spawn {
+        link 800
+        temp/t = NUM_PAGERS - pagers_left/x
+        temp/t += 1
+        pagers_left/x *= 5
+        pagers_left/x -= temp/t
+        while (pagers_left/x > 0) { pagers_left/x -= 1 }
+        page = 1
+        HALT
+      }
+      pagers_left/x -= 1
+      dial = -1
+    }
+  }
+}
+
+xb {
+  n/x = 0
+  while (n/x < NUM_PAGERS) {
+    fopen(300) {
+      while (!feof) {
+        $ch = fread()
+      }
+      $ch = -1
+    }
+    n/x +=1 
+  }
+}
