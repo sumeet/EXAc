@@ -1,0 +1,36 @@
+xa {
+  link 800, 800, 800, 800, 800
+  %repeat(6) { kill }
+  file_id/x = 200
+  while (file_id/x < 300) {
+    spawn {
+      fopen(file_id/x) {
+        link -1, -1, -1, -1, -1
+      }
+      HALT
+    }
+    file_id/x += 1
+  }
+  $ch = 1337
+}
+
+xb {
+  chignore()
+  spawn {
+    link 800, 800, 800, 800
+    kill
+    kill
+  } {
+    link 800, 800, 800
+    kill
+    kill
+  } {
+    link 800, 800
+    kill
+    kill
+  } {
+    link 800
+    kill
+    kill
+  }
+}
