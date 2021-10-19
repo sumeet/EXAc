@@ -5,37 +5,68 @@ xa {
   fopen(199) {
     loop {
       i/x = 0
-      while (i/x < CC_LENGTH) {
-        spawn {
-          // to local
-          chtoggle()
-          digit/x = $local
-          if (digit/x > 9) {
-          }
-        }
-
-        mod/t = i/x % 2
-        // to local
-        chtoggle() // to local
-        // we're doubling evens instead of odds because we're 0 indexed
-        if (mod/t == 0) {
-          $local = fread() * 2
-        } else {
-          $local = fread()
-        }
-        // to global
-        chtoggle()
+      while (i/x < 16) {
+        $ch = fread()
+        i/x += 1
       }
+      $ch = -1
+      file.seek(-15)
     }
   }
 }
 
 xb {
-  i/x = 0
-  fcreate() {
-    while (i/x < CC_LENGTH) {
-      fwrite($ch)
-      i/x += 1
+  loop {
+    fcreate() {
+      digit/x = $ch
+      while (digit/x != -1) {
+        fwrite(digit/x)
+        digit/x = $ch
+      }
+      
+      // validation step
+      file.seek(-9999)
+
+      // multiply odds by 2
+      c/x = 0
+      while (c/x < 8) {
+        digit/t = fread()
+        file.seek(-1)
+        fwrite(digit/t * 2)
+        file.seek(1)
+
+        c/x += 1
+      }
+
+      file.seek(-9999)
+      // subtract 9 if > 9
+      while (!feof) {
+        digit/x = fread()
+        if (digit/x > 9) {
+          file.seek(-1)
+          fwrite(digit/x - 9)
+        }
+      }
+      
+      // now sum it all up
+      file.seek(-9999)
+      sum/x = 0
+      while (!feof) {
+        sum/x += fread()
+      }
+      if (sum/x < 0) {
+        // there was garbage in here, let's bail
+        file.wipe()
+        continue
+      }
+      last_digit/x = sum/x ~ 1
+      if (last_digit/x == 0) {
+        wait
+        HALT
+      } else {
+        file.wipe()
+        continue
+      }
     }
   }
 }

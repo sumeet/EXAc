@@ -1,0 +1,24 @@
+xa {
+  link 800, 802, 799
+  fopen(199) {
+    loop {
+      i/x = 0
+      while (i/x < 16) {
+        $ch = fread()
+        i/x += 1
+      }
+      $ch = -1
+      file.seek(-15)
+    }
+  }
+}
+xb {
+  fcreate() {
+    digit/x = $ch
+    if (digit/x == -1) {
+      wait
+    } else {
+      fwrite(digit/x)
+    }
+  }
+}
