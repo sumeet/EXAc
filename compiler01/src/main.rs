@@ -59,6 +59,11 @@ fn assign_expr(assignment: &parser::Assignment) -> anyhow::Result<Vec<String>> {
             let rhs = to_reg_name(rhs)?;
             format!("{} {} {} {}", instruction, lhs, rhs, dest)
         }
+        AssignSource::Random(lhs, rhs) => {
+            let lhs = to_reg_name(lhs)?;
+            let rhs = to_reg_name(rhs)?;
+            format!("RAND {} {} {}", lhs, rhs, dest)
+        }
     }])
 }
 

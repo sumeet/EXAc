@@ -1,60 +1,60 @@
 // including home
 #define NUM_TOTAL_NODES 12
-#define KILL_SWITCH 9
 #define NERV #nerv
 
 xa {
   fcreate() {
     loop {
-      file.seek(-9999)
-      host_count/x = 0
-      while (!feof) {
-        file.seek(1)
-        host_count/x += 1
-      }
-
-      if (host_count/x == NUM_TOTAL_NODES) {
-        $ch = -9
-      } else {
-        host/x = $ch
-        file.seek(-9999)
-        while (!feof) {
-          temp/t = fread()
-          if (temp/t == host/x) {
-            file.seek(-1)
-            break
-          }
+      chtoggle()
+      $local = 1
+      chtoggle()
+      counter/x = 25
+      while (counter/x > 0) {
+        if (chready) {
+          fwrite($global)
         }
-        if (feof) {
-          fwrite(host/x)
-        }
+        counter/x -= 1
       }
     }
   }
 }
 
 xb {
-  link 800
+  // to local
+  chtoggle()
   loop {
-    if (chready) {
-      var/x = $ch
-      if ($ch == 9) {
-        HALT
-      } else {
-        $ch = var/x
+    cmd/x = $local
+    if (cmd/x == 1) {
+      spawn {
+        chtoggle()
+        link 800
+        loop {
+          rnd/x = random(0, 3)
+          // 50% chance
+          if (rnd/x < 2) {
+            temp/t = #nerv
+            // if it has a nerv, then call home
+            temp/t = hostid
+            $global = temp/t
+            HALT
+          }
+
+          if (rnd/x == 0) {
+            link -1
+          }
+          if (rnd/x == 1) {
+            link 1
+          }
+          if (rnd/x == 2) {
+            link 3
+          }
+          if (rnd/x == 3) {
+            link -3
+          }
+        }
       }
     }
-
-    spawn {
-      link 1
-    } {
-      link 3
-    } {
-      link -1
-    } {
-      link -3
-    } {
-      $ch = hostid
+    if (cmd/x == 9) {
       HALT
     }
   }

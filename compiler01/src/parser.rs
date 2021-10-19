@@ -116,6 +116,7 @@ pub enum BinOp {
 pub enum AssignSource {
     Operand(Operand),
     BinOp(Operand, BinOp, Operand),
+    Random(Operand, Operand),
 }
 
 #[derive(Debug, Clone)]
@@ -253,12 +254,16 @@ peg::parser! {
             = "hostid" { Operand::HostID }
 
         rule assign_source() -> AssignSource
-            = binop_assign_source() / operand_assign_source()
+            = binop_assign_source() / operand_assign_source() / random_assign_source()
         rule operand_assign_source() -> AssignSource
             = operand:operand() { AssignSource::Operand(operand) }
         rule binop_assign_source() -> AssignSource
             = lhs:operand() _? binop:binop() _? rhs:operand() {
                 AssignSource::BinOp(lhs, binop, rhs)
+            }
+        rule random_assign_source() -> AssignSource
+            = "random" _? "(" _? lhs:operand() comma() rhs:operand() _? ")" {
+                AssignSource::Random(lhs, rhs)
             }
 
         // TODO: this is method call syntax... maybe could be more than fileops later
