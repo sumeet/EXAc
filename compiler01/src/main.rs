@@ -147,11 +147,11 @@ impl CompileContext {
                 Expr::Halt => Ok(vec!["HALT".to_string()]),
                 Expr::Kill => Ok(vec!["KILL".to_string()]),
                 Expr::Wait(n) => Ok(repeat("NOOP".to_string()).take(*n as _).collect()),
-                Expr::Link(link) => Ok(link
+                Expr::Link(link) => link
                     .dests
                     .iter()
-                    .map(|dest| format!("LINK {}", to_arg(dest)))
-                    .collect()),
+                    .map(|dest| Ok(format!("LINK {}", to_reg_name(dest)?)))
+                    .collect(),
                 Expr::Continue => {
                     let prev_start_label = self
                         .loop_start_labels

@@ -68,7 +68,7 @@ pub enum Condition {
 
 #[derive(Debug)]
 pub struct Link {
-    pub dests: Vec<NumOrVar>,
+    pub dests: Vec<Operand>,
 }
 
 #[derive(Debug)]
@@ -267,7 +267,7 @@ peg::parser! {
                 })
             }
         rule link() -> Expr
-            = "link" _? dests:(num_or_var() ** comma()) { Expr::Link(Link { dests }) }
+            = "link" _? dests:(operand() ** comma()) { Expr::Link(Link { dests }) }
         rule wait() -> Expr
             = wait_n_times() / wait_no_args()
         rule wait_no_args() -> Expr
