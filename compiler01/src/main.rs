@@ -91,6 +91,7 @@ fn cond_op(expr: &Expr) -> anyhow::Result<String> {
         | Expr::If(_)
         | Expr::While(_)
         | Expr::Continue
+        | Expr::Break
         | Expr::Loop(_) => {
             bail!("conditions not supported for {:?}", expr)
         }
@@ -104,12 +105,14 @@ struct TestExpr {
 
 struct CompileContext {
     loop_start_labels: Vec<String>,
+    loop_end_labels: Vec<String>,
 }
 
 impl CompileContext {
     fn new() -> Self {
         Self {
             loop_start_labels: vec![],
+            loop_end_labels: vec![],
         }
     }
 
@@ -159,6 +162,13 @@ impl CompileContext {
                     .iter()
                     .map(|dest| Ok(format!("LINK {}", to_reg_name(dest)?)))
                     .collect(),
+                Expr::Break => {
+                    let prev_end_label = self
+                        .loop_end_labels
+                        .last()
+                        .ok_or_else(|| anyhow!("break used outside of loop"))?;
+                    Ok(vec![format!("JUMP {}", prev_end_label)])
+                }
                 Expr::Continue => {
                     let prev_start_label = self
                         .loop_start_labels
@@ -231,7 +241,9 @@ impl CompileContext {
         v.push(format!("{} {}", jmp_instruction, end_label));
 
         self.push_loop_start_label(start_label.clone());
+        self.push_loop_end_label(end_label.clone());
         v.extend(self.compile_block(&r#while.block)?);
+        self.pop_loop_end_label();
         self.pop_loop_start_label();
 
         v.push(format!("JUMP {}", start_label));
@@ -242,15 +254,19 @@ impl CompileContext {
     fn compile_loop(&mut self, block: &parser::Block) -> anyhow::Result<Vec<String>> {
         let loop_id = rand_label_id();
         let start_of_loop_label = format!("LO_ST_{}", loop_id);
+        let end_of_loop_label = format!("LO_ED_{}", loop_id);
 
         let mut v = vec![];
         v.push(format!("MARK {}", start_of_loop_label));
 
         self.push_loop_start_label(start_of_loop_label.clone());
+        self.push_loop_end_label(end_of_loop_label.clone());
         v.extend(self.compile_block(&block)?);
+        self.pop_loop_end_label();
         self.pop_loop_start_label();
 
         v.push(format!("JUMP {}", start_of_loop_label));
+        v.push(format!("MARK {}", end_of_loop_label));
         Ok(v)
     }
 
@@ -324,6 +340,14 @@ impl CompileContext {
 
     fn pop_loop_start_label(&mut self) {
         self.loop_start_labels.pop();
+    }
+
+    fn push_loop_end_label(&mut self, end_label: String) {
+        self.loop_end_labels.push(end_label);
+    }
+
+    fn pop_loop_end_label(&mut self) {
+        self.loop_end_labels.pop();
     }
 }
 

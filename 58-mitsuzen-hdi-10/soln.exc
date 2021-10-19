@@ -1,0 +1,61 @@
+// including home
+#define NUM_TOTAL_NODES 12
+#define KILL_SWITCH 9
+#define NERV #nerv
+
+xa {
+  fcreate() {
+    loop {
+      file.seek(-9999)
+      host_count/x = 0
+      while (!feof) {
+        file.seek(1)
+        host_count/x += 1
+      }
+
+      if (host_count/x == NUM_TOTAL_NODES) {
+        $ch = -9
+      } else {
+        host/x = $ch
+        file.seek(-9999)
+        while (!feof) {
+          temp/t = fread()
+          if (temp/t == host/x) {
+            file.seek(-1)
+            break
+          }
+        }
+        if (feof) {
+          fwrite(host/x)
+        }
+      }
+    }
+  }
+}
+
+xb {
+  link 800
+  loop {
+    if (chready) {
+      var/x = $ch
+      if ($ch == 9) {
+        HALT
+      } else {
+        $ch = var/x
+      }
+    }
+
+    spawn {
+      link 1
+    } {
+      link 3
+    } {
+      link -1
+    } {
+      link -3
+    } {
+      $ch = hostid
+      HALT
+    }
+  }
+}
