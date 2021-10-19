@@ -89,6 +89,9 @@ xb {
     // now read out all the host IDs in order locally
     file.seek(-9999)
     chtoggle()
+    while(!feof) {
+      $local = fread()
+    }
+    $local = -1
   }
 }
-
