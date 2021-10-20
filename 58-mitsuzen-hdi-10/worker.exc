@@ -8,7 +8,9 @@ loop {
         if (!chready) {
           if (!chready) {
             if (!chready) {
-              HALT
+              if (!chready) {
+                HALT
+              }
             }
           }
         }
