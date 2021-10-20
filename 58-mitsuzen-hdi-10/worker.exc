@@ -6,7 +6,11 @@ loop {
     if (!chready) {
       if (!chready) {
         if (!chready) {
-          HALT
+          if (!chready) {
+            if (!chready) {
+              HALT
+            }
+          }
         }
       }
     }
