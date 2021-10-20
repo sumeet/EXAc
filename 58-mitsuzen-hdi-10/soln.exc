@@ -93,5 +93,29 @@ xb {
       $local = fread()
     }
     $local = -1
+    file.wipe()
   }
+}
+
+xc {
+  chtoggle()
+  fcreate() {
+    host_id/x = $local
+    while (host_id/x != -1) {
+      fwrite(host_id/x)
+      chtoggle()
+      spawn {
+        #include "worker.exc"
+      }
+
+      %repeat(20) {
+        $global = host_id/x
+      }
+      fwrite($global)
+
+      chtoggle()
+      host_id/x = $local
+    }
+  }
+  HALT
 }

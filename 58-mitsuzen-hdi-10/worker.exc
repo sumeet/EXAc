@@ -1,0 +1,56 @@
+next_link/x = 800
+loop {
+  link next_link/x
+  kill
+  spawn {
+    if (!chready) {
+      if (!chready) {
+        if (!chready) {
+          HALT
+        }
+      }
+    }
+    host_id/x = hostid
+    if (host_id/x == $global) {
+      // suck up all the repeated hostids
+      wait 200
+      while (chready) {
+        chignore()
+        wait
+      }
+      $global = #nerv
+    }
+    HALT
+  }
+  if (next_link/x == 800) {
+    spawn { next_link/x = 1 }
+          { next_link/x = 3 }
+          { next_link/x = -3 }
+    continue
+  }
+  if (next_link/x == 1) {
+    spawn { next_link/x = 1 }
+          { next_link/x = 3 }
+          { next_link/x = -3 }
+    continue
+  }
+  if (next_link/x == -1) {
+    spawn { next_link/x = -1 }
+          { next_link/x = 3 }
+          { next_link/x = -3 }
+    continue
+  }
+  if (next_link/x == -3) {
+    spawn { next_link/x = -1 }
+          { next_link/x = 1 }
+          { next_link/x = -3 }
+    continue
+  }
+  if (next_link/x == 3) {
+    spawn { next_link/x = -1 }
+          { next_link/x = 1 }
+          { next_link/x = 3 }
+    continue
+  }
+  HALT
+}
