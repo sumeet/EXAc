@@ -17,7 +17,10 @@ loop {
     host_id/x = hostid
     if (host_id/x == $global) {
       // suck up all the repeated hostids
-      wait 200
+      i/x = 200
+      while (i/x > 0) {
+        i/x -= 1
+      }
       while (chready) {
         chignore()
         wait

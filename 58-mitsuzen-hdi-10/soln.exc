@@ -108,7 +108,7 @@ xc {
         #include "worker.exc"
       }
 
-      %repeat(30) {
+      %repeat(50) {
         $global = host_id/x
       }
       fwrite($global)
